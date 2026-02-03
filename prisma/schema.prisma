@@ -1,0 +1,166 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ImportRun - Tracks CSV uploads for multi-run comparison
+model ImportRun {
+  id          String   @id @default(cuid())
+  fileName    String
+  platform    String   // 'meta', 'facebook', 'instagram'
+  rowCount    Int
+  createdAt   DateTime @default(now())
+  Campaign    Campaign[]
+  AdSet       AdSet[]
+  Ad          Ad[]
+  DailyMetric DailyMetric[]
+
+  @@index([createdAt])
+}
+
+// Campaign - Campaign-level data
+model Campaign {
+  id            String   @id @default(cuid())
+  importRunId   String
+  importRun     ImportRun @relation(fields: [importRunId], references: [id], onDelete: Cascade)
+  name          String
+  objective     String?  // e.g., 'OUTCOME_TRAFFIC', 'OUTCOME_CONVERSIONS'
+  status        String?  // 'active', 'paused', etc.
+  platform      String?  // 'facebook', 'instagram'
+  
+  // Metrics
+  spend         Float    @default(0)
+  impressions   Int      @default(0)
+  reach         Int      @default(0)
+  clicks        Int      @default(0) // Link clicks
+  results       Int      @default(0)
+  resultType    String?  // e.g., 'landing_page_view', 'purchase'
+  
+  // Computed metrics (stored for performance)
+  cpm           Float?   // Cost per mille
+  cpc           Float?   // Cost per click
+  
+  // Raw data for traceability
+  rawRow        String?  // JSON string of original CSV row
+
+  AdSet         AdSet[]
+  Ad           Ad[]
+  CampaignNote  CampaignNote[]
+
+  @@index([importRunId])
+  @@index([name])
+  @@index([objective])
+}
+
+// AdSet - Ad set-level data
+model AdSet {
+  id            String   @id @default(cuid())
+  campaignId    String
+  campaign      Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  importRunId   String
+  importRun     ImportRun @relation(fields: [importRunId], references: [id], onDelete: Cascade)
+  name          String
+  targetAudience String?
+  
+  // Metrics
+  spend         Float    @default(0)
+  impressions   Int      @default(0)
+  reach         Int      @default(0)
+  clicks        Int      @default(0)
+  results       Int      @default(0)
+  resultType    String?
+  
+  // Computed metrics
+  cpm           Float?
+  cpc           Float?
+  
+  rawRow        String?
+  
+  Ad            Ad[]
+
+  @@index([campaignId])
+  @@index([importRunId])
+  @@index([name])
+}
+
+// Ad - Individual ad data
+model Ad {
+  id            String   @id @default(cuid())
+  adSetId       String?
+  adSet         AdSet?   @relation(fields: [adSetId], references: [id], onDelete: SetNull)
+  campaignId    String
+  campaign      Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  importRunId   String
+  importRun     ImportRun @relation(fields: [importRunId], references: [id], onDelete: Cascade)
+  name          String
+  creativeUrl   String?  // Image/creative URL
+  
+  // Metrics
+  spend         Float    @default(0)
+  impressions   Int      @default(0)
+  reach         Int      @default(0)
+  clicks        Int      @default(0)
+  results       Int      @default(0)
+  resultType    String?
+  
+  // Computed metrics
+  cpm           Float?
+  cpc           Float?
+  
+  rawRow        String?
+
+  @@index([campaignId])
+  @@index([adSetId])
+  @@index([importRunId])
+  @@index([name])
+}
+
+// DailyMetric - Time series metrics for charts
+model DailyMetric {
+  id            String   @id @default(cuid())
+  entityType    String   // 'campaign', 'adSet', 'ad'
+  entityId      String   // ID of the entity
+  importRunId   String
+  importRun     ImportRun @relation(fields: [importRunId], references: [id], onDelete: Cascade)
+  campaignId    String?  // For easier querying
+  date          DateTime
+  
+  // Metrics
+  spend         Float    @default(0)
+  impressions   Int      @default(0)
+  reach         Int      @default(0)
+  clicks        Int      @default(0)
+  results       Int      @default(0)
+  resultType    String?
+  
+  // Computed metrics
+  cpm           Float?
+  cpc           Float?
+
+  @@index([entityType, entityId])
+  @@index([campaignId, date])
+  @@index([importRunId, date])
+  @@index([date])
+}
+
+// CampaignNote - User annotations
+model CampaignNote {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  content     String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([campaignId])
+}
