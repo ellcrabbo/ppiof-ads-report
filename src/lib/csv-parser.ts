@@ -196,8 +196,10 @@ export function isTotalsRow(row: any): boolean {
 export async function parseCSVFile(
   file: File
 ): Promise<ParseResult> {
+  const csvText = await file.text();
+
   return new Promise((resolve) => {
-    Papa.parse(file, {
+    Papa.parse(csvText, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
