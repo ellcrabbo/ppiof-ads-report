@@ -9,10 +9,10 @@ const CreateNoteSchema = z.object({
 // Get campaign notes
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const campaignId = params.id;
+    const { id: campaignId } = await params;
 
     const notes = await db.campaignNote.findMany({
       where: { campaignId },
@@ -37,10 +37,10 @@ export async function GET(
 // Create a new note
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const campaignId = params.id;
+    const { id: campaignId } = await params;
     const body = await request.json();
     const validatedData = CreateNoteSchema.parse(body);
 
@@ -59,7 +59,7 @@ export async function POST(
     console.error('Create note error:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: 'Validation error', details: error.issues },
         { status: 400 }
       );
     }

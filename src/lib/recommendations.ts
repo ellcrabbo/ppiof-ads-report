@@ -16,12 +16,19 @@ export interface Recommendation {
   metrics: string[];
 }
 
+type CampaignMetrics = Pick<
+  Campaign,
+  'spend' | 'impressions' | 'reach' | 'clicks' | 'results' | 'cpm' | 'cpc'
+>;
+
+type AdSetMetrics = Pick<AdSet, 'spend' | 'impressions' | 'clicks' | 'cpc'>;
+
 /**
  * Generate recommendations for a campaign
  */
 export function generateCampaignRecommendations(
-  campaign: Campaign,
-  previousCampaign?: Campaign
+  campaign: CampaignMetrics,
+  previousCampaign?: CampaignMetrics
 ): Recommendation[] {
   const recommendations: Recommendation[] = [];
 
@@ -37,15 +44,15 @@ export function generateCampaignRecommendations(
   const spendChange = previousCampaign
     ? campaign.spend - previousCampaign.spend
     : undefined;
-  const spendChangePercent = spendChange && previousCampaign.spend > 0
-    ? (spendChange / previousCampaign.spend) * 100
+  const spendChangePercent = previousCampaign && previousCampaign.spend > 0
+    ? ((campaign.spend - previousCampaign.spend) / previousCampaign.spend) * 100
     : undefined;
 
   const cpcChange = previousCampaign
     ? cpc - (previousCampaign.cpc || 0)
     : undefined;
-  const cpcChangePercent = cpcChange && previousCampaign.cpc
-    ? (cpcChange / previousCampaign.cpc) * 100
+  const cpcChangePercent = previousCampaign && previousCampaign.cpc
+    ? ((cpc - (previousCampaign.cpc || 0)) / previousCampaign.cpc) * 100
     : undefined;
 
   const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
@@ -165,8 +172,8 @@ export function generateCampaignRecommendations(
  * Generate recommendations for an ad set
  */
 export function generateAdSetRecommendations(
-  adSet: AdSet,
-  previousAdSet?: AdSet
+  adSet: AdSetMetrics,
+  previousAdSet?: AdSetMetrics
 ): Recommendation[] {
   const recommendations: Recommendation[] = [];
 

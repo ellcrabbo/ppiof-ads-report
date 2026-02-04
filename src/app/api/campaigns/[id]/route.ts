@@ -5,23 +5,23 @@ import { z } from 'zod';
 // Get campaign detail
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const campaignId = params.id;
+    const { id: campaignId } = await params;
 
     const campaign = await db.campaign.findUnique({
       where: { id: campaignId },
       include: {
-        adSets: {
+        AdSet: {
           include: {
-            ads: true,
+            Ad: true,
           },
           orderBy: {
             spend: 'desc',
           },
         },
-        notes: {
+        CampaignNote: {
           orderBy: {
             createdAt: 'desc',
           },
@@ -36,9 +36,19 @@ export async function GET(
       );
     }
 
+    const { AdSet, CampaignNote, ...campaignData } = campaign;
+    const normalizedCampaign = {
+      ...campaignData,
+      adSets: AdSet.map(({ Ad, ...adSet }) => ({
+        ...adSet,
+        ads: Ad,
+      })),
+      notes: CampaignNote,
+    };
+
     return NextResponse.json({
       success: true,
-      data: campaign,
+      data: normalizedCampaign,
     });
   } catch (error) {
     console.error('Campaign detail error:', error);

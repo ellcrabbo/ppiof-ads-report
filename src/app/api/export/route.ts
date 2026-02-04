@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
     const campaigns = await db.campaign.findMany({
       where,
       include: {
-        adSets: {
+        AdSet: {
           include: {
-            ads: true,
+            Ad: true,
           },
           orderBy: {
             spend: 'desc',
@@ -81,8 +81,16 @@ export async function POST(request: NextRequest) {
     };
 
     // Generate PDF
+    const normalizedCampaigns = campaigns.map(({ AdSet, ...campaign }) => ({
+      ...campaign,
+      adSets: AdSet.map(({ Ad, ...adSet }) => ({
+        ...adSet,
+        ads: Ad,
+      })),
+    }));
+
     const reportData = {
-      campaigns,
+      campaigns: normalizedCampaigns,
       dateRange,
       totalSpend,
       totalImpressions,
@@ -91,20 +99,21 @@ export async function POST(request: NextRequest) {
     };
 
     const pdfBuffer = await renderToBuffer(generateCampaignReportPDF(reportData));
+    const pdfBytes = new Uint8Array(pdfBuffer);
 
     // Return PDF as response
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(pdfBytes, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="ppiof-ads-report-${new Date().toISOString().split('T')[0]}.pdf"`,
-        'Content-Length': pdfBuffer.length.toString(),
+        'Content-Length': pdfBytes.byteLength.toString(),
       },
     });
   } catch (error) {
     console.error('Export error:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: 'Validation error', details: error.issues },
         { status: 400 }
       );
     }

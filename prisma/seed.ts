@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Campaign, AdSet } from '@prisma/client';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -134,7 +134,7 @@ async function main() {
 
   // Create campaigns
   console.log('Creating campaigns...');
-  const createdCampaigns = [];
+  const createdCampaigns: Campaign[] = [];
   for (const campaignData of campaignsMap.values()) {
     const campaign = await prisma.campaign.create({
       data: {
@@ -158,7 +158,7 @@ async function main() {
 
   // Create ad sets
   console.log('Creating ad sets...');
-  const createdAdSets = [];
+  const createdAdSets: AdSet[] = [];
   for (const [key, adSetData] of adSetsMap.entries()) {
     const [campaignName] = key.split('|');
     const campaignId = campaignNameToId.get(campaignName);
