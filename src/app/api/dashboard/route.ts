@@ -50,7 +50,6 @@ export async function GET(request: NextRequest) {
         cpc: true,
         objective: true,
         platform: true,
-        createdAt: true,
       },
     });
 
