@@ -82,6 +82,11 @@ export const META_COLUMN_MAPPING = {
   ],
   creativeUrl: [
     'Ad creative URL',
+    'Creative URL',
+    'Creative',
+    'Thumbnail URL',
+    'Image URL',
+    'Video Thumbnail URL',
     'Ad url',
     'Ad URL',
   ],

@@ -13,6 +13,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum CreativeType {
+  IMAGE
+  VIDEO
+  CAROUSEL
+}
+
+enum NoteType {
+  STRATEGY
+  CREATIVE
+  BUDGET_CHANGE
+  EXTERNAL_FACTOR
+}
+
 // ImportRun - Tracks CSV uploads for multi-run comparison
 model ImportRun {
   id          String   @id @default(cuid())
@@ -103,7 +116,9 @@ model Ad {
   importRunId   String
   importRun     ImportRun @relation(fields: [importRunId], references: [id], onDelete: Cascade)
   name          String
-  creativeUrl   String?  // Image/creative URL
+  creativeUrl   String?  // Creative thumbnail or preview URL
+  creativeType  CreativeType?
+  creativeCarouselTotal Int?
   
   // Metrics
   spend         Float    @default(0)
@@ -159,6 +174,7 @@ model CampaignNote {
   campaignId  String
   campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   content     String   @db.Text
+  type        NoteType?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

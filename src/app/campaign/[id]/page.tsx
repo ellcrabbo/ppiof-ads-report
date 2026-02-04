@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -21,10 +22,35 @@ import {
   AlertCircle,
   FileText,
   Image as ImageIcon,
+  Layers,
+  Play,
   Save,
   MessageSquare,
 } from 'lucide-react';
 import { generateCampaignRecommendations, generateAdSetRecommendations, Recommendation } from '@/lib/recommendations';
+
+type CreativeType = 'IMAGE' | 'VIDEO' | 'CAROUSEL' | null;
+type NoteType = 'STRATEGY' | 'CREATIVE' | 'BUDGET_CHANGE' | 'EXTERNAL_FACTOR' | null;
+
+const NOTE_TYPE_LABELS: Record<Exclude<NoteType, null>, string> = {
+  STRATEGY: 'Strategy',
+  CREATIVE: 'Creative',
+  BUDGET_CHANGE: 'Budget Change',
+  EXTERNAL_FACTOR: 'External Factor',
+};
+
+const NOTE_TYPE_BADGE: Record<Exclude<NoteType, null>, 'default' | 'secondary' | 'outline'> = {
+  STRATEGY: 'default',
+  CREATIVE: 'secondary',
+  BUDGET_CHANGE: 'outline',
+  EXTERNAL_FACTOR: 'secondary',
+};
+
+const CREATIVE_TYPE_LABELS: Record<Exclude<CreativeType, null>, string> = {
+  IMAGE: 'Image',
+  VIDEO: 'Video',
+  CAROUSEL: 'Carousel',
+};
 
 interface CampaignDetail {
   id: string;
@@ -53,6 +79,8 @@ interface CampaignDetail {
       id: string;
       name: string;
       creativeUrl: string | null;
+      creativeType: CreativeType;
+      creativeCarouselTotal: number | null;
       spend: number;
       impressions: number;
       reach: number;
@@ -65,6 +93,7 @@ interface CampaignDetail {
   notes: Array<{
     id: string;
     content: string;
+    type: NoteType;
     createdAt: string;
     updatedAt: string;
   }>;
@@ -77,7 +106,13 @@ export default function CampaignDetailPage() {
   const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [newNote, setNewNote] = useState('');
+  const [newNoteType, setNewNoteType] = useState<NoteType>('STRATEGY');
   const [savingNote, setSavingNote] = useState(false);
+  const [creativeEdits, setCreativeEdits] = useState<Record<string, {
+    creativeUrl: string;
+    creativeType: CreativeType;
+    creativeCarouselTotal: string;
+  }>>({});
 
   useEffect(() => {
     if (!campaignId) return;
@@ -120,7 +155,7 @@ export default function CampaignDetailPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content: newNote }),
+        body: JSON.stringify({ content: newNote, type: newNoteType || undefined }),
       });
 
       if (!res.ok) {
@@ -133,6 +168,7 @@ export default function CampaignDetailPage() {
       });
 
       setNewNote('');
+      setNewNoteType('STRATEGY');
       fetchCampaign();
     } catch (error) {
       console.error('Save note error:', error);
@@ -193,6 +229,104 @@ export default function CampaignDetailPage() {
     }
   };
 
+  const getNoteTypeLabel = (type: NoteType) => {
+    if (!type) return 'General';
+    return NOTE_TYPE_LABELS[type];
+  };
+
+  const getNoteTypeVariant = (type: NoteType) => {
+    if (!type) return 'outline';
+    return NOTE_TYPE_BADGE[type];
+  };
+
+  const getCreativeEdit = (ad: CampaignDetail['adSets'][number]['ads'][number]) => {
+    return (
+      creativeEdits[ad.id] ?? {
+        creativeUrl: ad.creativeUrl || '',
+        creativeType: ad.creativeType || null,
+        creativeCarouselTotal: ad.creativeCarouselTotal ? String(ad.creativeCarouselTotal) : '',
+      }
+    );
+  };
+
+  const updateCreativeEdit = (
+    adId: string,
+    updates: Partial<{
+      creativeUrl: string;
+      creativeType: CreativeType;
+      creativeCarouselTotal: string;
+    }>
+  ) => {
+    setCreativeEdits((prev) => ({
+      ...prev,
+      [adId]: {
+        ...(prev[adId] || { creativeUrl: '', creativeType: null, creativeCarouselTotal: '' }),
+        ...updates,
+      },
+    }));
+  };
+
+  const updateAdInState = (
+    adId: string,
+    updates: Partial<CampaignDetail['adSets'][number]['ads'][number]>
+  ) => {
+    setCampaign((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        adSets: prev.adSets.map((adSet) => ({
+          ...adSet,
+          ads: adSet.ads.map((ad) => (ad.id === adId ? { ...ad, ...updates } : ad)),
+        })),
+      };
+    });
+  };
+
+  const handleSaveCreative = async (adId: string) => {
+    const ad = campaign?.adSets.flatMap((adSet) => adSet.ads).find((item) => item.id === adId);
+    if (!ad) return;
+
+    const edit = getCreativeEdit(ad);
+    const payload = {
+      creativeUrl: edit.creativeUrl.trim() || null,
+      creativeType: edit.creativeType,
+      creativeCarouselTotal:
+        edit.creativeType === 'CAROUSEL' && edit.creativeCarouselTotal
+          ? Number(edit.creativeCarouselTotal)
+          : null,
+    };
+
+    try {
+      const res = await fetch(`/api/ads/${adId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update creative');
+      }
+
+      updateAdInState(adId, {
+        creativeUrl: payload.creativeUrl,
+        creativeType: payload.creativeType,
+        creativeCarouselTotal: payload.creativeCarouselTotal,
+      });
+
+      toast({
+        title: 'Creative updated',
+        description: 'Creative metadata saved successfully.',
+      });
+    } catch (error) {
+      console.error('Creative update error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Update failed',
+        description: (error as Error).message,
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -211,6 +345,9 @@ export default function CampaignDetailPage() {
   const recommendations = generateCampaignRecommendations(campaign);
 
   const ctr = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0;
+  const resultsPer100 = campaign.spend > 0 ? (campaign.results / campaign.spend) * 100 : 0;
+  const clicksPer1k = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 1000 : 0;
+  const reachPer100 = campaign.spend > 0 ? (campaign.reach / campaign.spend) * 100 : 0;
 
   const topAds = campaign.adSets
     .flatMap(adSet => adSet.ads)
@@ -221,6 +358,10 @@ export default function CampaignDetailPage() {
       return ctrB - ctrA;
     })
     .slice(0, 10);
+
+  const allAds = campaign.adSets.flatMap((adSet) =>
+    adSet.ads.map((ad) => ({ ...ad, adSetName: adSet.name }))
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -288,10 +429,47 @@ export default function CampaignDetailPage() {
           </Card>
         </div>
 
+        {/* Normalized Performance */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Results per $100</CardTitle>
+              <Target className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{resultsPer100.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">Spend-normalized results</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Clicks per 1,000 Impr.</CardTitle>
+              <MousePointer2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{clicksPer1k.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">CTR normalized</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Reach per $100</CardTitle>
+              <Eye className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{reachPer100.toFixed(0)}</div>
+              <p className="text-xs text-muted-foreground">Spend-normalized reach</p>
+            </CardContent>
+          </Card>
+        </div>
+
         <Tabs defaultValue="adsets" className="space-y-4">
           <TabsList>
             <TabsTrigger value="adsets">Ad Sets</TabsTrigger>
             <TabsTrigger value="ads">Top Ads</TabsTrigger>
+            <TabsTrigger value="creatives">Creatives</TabsTrigger>
             <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
             <TabsTrigger value="notes">Notes</TabsTrigger>
           </TabsList>
@@ -442,6 +620,150 @@ export default function CampaignDetailPage() {
             </Card>
           </TabsContent>
 
+          {/* Creatives Tab */}
+          <TabsContent value="creatives" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Ad Creatives</CardTitle>
+                <CardDescription>
+                  Store thumbnails and creative metadata per ad
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border max-h-[600px] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Creative</TableHead>
+                        <TableHead>Ad</TableHead>
+                        <TableHead>Ad Set</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>URL</TableHead>
+                        <TableHead>Carousel</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {allAds.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                            No ads found for this campaign.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        allAds.map((ad) => {
+                          const edit = getCreativeEdit(ad);
+                          const creativeUrl = edit.creativeUrl.trim();
+                          const isCarousel = edit.creativeType === 'CAROUSEL';
+
+                          return (
+                            <TableRow key={ad.id}>
+                              <TableCell>
+                                <div className="h-12 w-12 rounded-md border bg-slate-50 flex items-center justify-center overflow-hidden relative">
+                                  {creativeUrl ? (
+                                    <>
+                                      <img
+                                        src={creativeUrl}
+                                        alt={ad.name}
+                                        className="h-full w-full object-cover"
+                                      />
+                                      {edit.creativeType === 'VIDEO' && (
+                                        <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                          <Play className="h-5 w-5 text-white" />
+                                        </span>
+                                      )}
+                                      {edit.creativeType === 'CAROUSEL' && (
+                                        <span className="absolute bottom-1 right-1 rounded bg-white/90 px-1 text-[10px] text-slate-700">
+                                          1/{edit.creativeCarouselTotal || '?'}
+                                        </span>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="font-medium">{ad.name}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {ad.adSetName}
+                              </TableCell>
+                              <TableCell>
+                                <Select
+                                  value={edit.creativeType ?? 'UNSET'}
+                                  onValueChange={(value) =>
+                                    updateCreativeEdit(ad.id, {
+                                      creativeType: value === 'UNSET' ? null : (value as CreativeType),
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger className="w-[140px]">
+                                    <SelectValue placeholder="Select type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="UNSET">Not set</SelectItem>
+                                    <SelectItem value="IMAGE">Image</SelectItem>
+                                    <SelectItem value="VIDEO">Video</SelectItem>
+                                    <SelectItem value="CAROUSEL">Carousel</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    value={edit.creativeUrl}
+                                    onChange={(e) =>
+                                      updateCreativeEdit(ad.id, { creativeUrl: e.target.value })
+                                    }
+                                    placeholder="Paste creative URL"
+                                    className="min-w-[240px]"
+                                  />
+                                  {creativeUrl && (
+                                    <a
+                                      href={creativeUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-xs text-primary underline"
+                                    >
+                                      Open
+                                    </a>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="number"
+                                    min={1}
+                                    disabled={!isCarousel}
+                                    value={edit.creativeCarouselTotal}
+                                    onChange={(e) =>
+                                      updateCreativeEdit(ad.id, {
+                                        creativeCarouselTotal: e.target.value,
+                                      })
+                                    }
+                                    placeholder={isCarousel ? 'Cards' : 'N/A'}
+                                    className="w-20"
+                                  />
+                                  {isCarousel && <Layers className="h-4 w-4 text-muted-foreground" />}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button size="sm" variant="outline" onClick={() => handleSaveCreative(ad.id)}>
+                                  <Save className="h-4 w-4 mr-2" />
+                                  Save
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Recommendations Tab */}
           <TabsContent value="recommendations" className="space-y-4">
             <Card>
@@ -492,6 +814,27 @@ export default function CampaignDetailPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="new-note">Add a Note</Label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Select
+                      value={newNoteType ?? 'STRATEGY'}
+                      onValueChange={(value) =>
+                        setNewNoteType(value as NoteType)
+                      }
+                    >
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Note type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="STRATEGY">{NOTE_TYPE_LABELS.STRATEGY}</SelectItem>
+                        <SelectItem value="CREATIVE">{NOTE_TYPE_LABELS.CREATIVE}</SelectItem>
+                        <SelectItem value="BUDGET_CHANGE">{NOTE_TYPE_LABELS.BUDGET_CHANGE}</SelectItem>
+                        <SelectItem value="EXTERNAL_FACTOR">{NOTE_TYPE_LABELS.EXTERNAL_FACTOR}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Type helps build a timeline of decisions.
+                    </p>
+                  </div>
                   <Textarea
                     id="new-note"
                     placeholder="Enter your notes or observations..."
@@ -515,14 +858,20 @@ export default function CampaignDetailPage() {
                       No notes yet. Add your first note above.
                     </p>
                   ) : (
-                    <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto border-l border-slate-200 pl-3">
                       {campaign.notes.map((note) => (
-                        <div key={note.id} className="bg-slate-50 p-3 rounded-lg">
-                          <div className="flex justify-between items-start gap-2 mb-2">
-                            <p className="text-sm flex-1">{note.content}</p>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              {formatDate(note.createdAt)}
-                            </span>
+                        <div key={note.id} className="relative pl-6">
+                          <span className="absolute left-2 top-2 h-2 w-2 rounded-full bg-slate-300" />
+                          <div className="bg-slate-50 p-3 rounded-lg border">
+                            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                              <Badge variant={getNoteTypeVariant(note.type)}>
+                                {getNoteTypeLabel(note.type)}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                {formatDate(note.createdAt)}
+                              </span>
+                            </div>
+                            <p className="text-sm">{note.content}</p>
                           </div>
                         </div>
                       ))}

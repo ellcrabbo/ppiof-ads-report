@@ -9,6 +9,14 @@ const UploadSchema = z.object({
   dateEnd: z.string().optional(),
 });
 
+function inferCreativeType(url?: string | null): 'IMAGE' | 'VIDEO' | null {
+  if (!url) return null;
+  const lower = url.toLowerCase();
+  if (/\.(mp4|mov|webm)$/.test(lower)) return 'VIDEO';
+  if (/\.(jpg|jpeg|png|gif|webp)$/.test(lower)) return 'IMAGE';
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -61,6 +69,7 @@ export async function POST(request: NextRequest) {
       const status = row.status;
       const platform = row.platform || validatedData.platform;
       const creativeUrl = row.creativeUrl;
+      const creativeType = inferCreativeType(creativeUrl);
 
       const cpm = calculateCPM(spend, impressions);
       const cpc = calculateCPC(spend, clicks);
@@ -176,6 +185,7 @@ export async function POST(request: NextRequest) {
       const results = parseNumber(row.results || '');
       const resultType = row.resultType;
       const creativeUrl = row.creativeUrl;
+      const creativeType = inferCreativeType(creativeUrl);
 
       const cpm = calculateCPM(spend, impressions);
       const cpc = calculateCPC(spend, clicks);
@@ -189,6 +199,8 @@ export async function POST(request: NextRequest) {
           adSetId,
           importRunId: importRun.id,
           creativeUrl,
+          creativeType,
+          creativeCarouselTotal: null,
           spend: 0,
           impressions: 0,
           reach: 0,

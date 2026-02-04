@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 const CreateNoteSchema = z.object({
   content: z.string().min(1).max(5000),
+  type: z.enum(['STRATEGY', 'CREATIVE', 'BUDGET_CHANGE', 'EXTERNAL_FACTOR']).optional(),
 });
 
 // Get campaign notes
@@ -48,6 +49,7 @@ export async function POST(
       data: {
         campaignId,
         content: validatedData.content,
+        type: validatedData.type ?? 'STRATEGY',
       },
     });
 
