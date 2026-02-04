@@ -47,9 +47,6 @@ A production-ready Meta Ads analytics dashboard built with Next.js 16, TypeScrip
 │   └── middleware.ts                  # Route protection
 ├── prisma/
 │   ├── schema.prisma                   # Database schema
-│   └── seed.ts                        # Database seeding script
-├── samples/
-│   └── sample-ads-export.csv          # Sample CSV for testing
 └── .env.example                       # Environment variables template
 ```
 
@@ -107,8 +104,7 @@ A production-ready Meta Ads analytics dashboard built with Next.js 16, TypeScrip
    # Push schema to database
    bun run db:push
 
-   # (Optional) Seed with sample data
-   bun run db:seed
+   # Upload your CSV in the app to populate data
    ```
 
 4. **Run the development server**:
