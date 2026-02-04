@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 const QuerySchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
@@ -66,14 +69,14 @@ export async function GET(request: NextRequest) {
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          adSets: {
+          AdSet: {
             include: {
-              ads: true,
+              Ad: true,
             },
           },
           _count: {
             select: {
-              adSets: true,
+              AdSet: true,
             },
           },
         },
@@ -95,7 +98,7 @@ export async function GET(request: NextRequest) {
     console.error('Campaigns fetch error:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: 'Validation error', details: error.issues },
         { status: 400 }
       );
     }
