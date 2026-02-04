@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -70,21 +70,25 @@ interface CampaignDetail {
   }>;
 }
 
-export default function CampaignDetailPage({ params }: { params: { id: string } }) {
+export default function CampaignDetailPage() {
   const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const campaignId = Array.isArray(params?.id) ? params.id[0] : params?.id;
   const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [newNote, setNewNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
 
   useEffect(() => {
+    if (!campaignId) return;
     fetchCampaign();
-  }, [params.id]);
+  }, [campaignId]);
 
   const fetchCampaign = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/campaigns/${params.id}`);
+      if (!campaignId) return;
+      const res = await fetch(`/api/campaigns/${campaignId}`);
 
       if (!res.ok) {
         throw new Error('Failed to fetch campaign');
@@ -107,10 +111,11 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
 
   const handleSaveNote = async () => {
     if (!newNote.trim()) return;
+    if (!campaignId) return;
 
     setSavingNote(true);
     try {
-      const res = await fetch(`/api/campaigns/${params.id}/notes`, {
+      const res = await fetch(`/api/campaigns/${campaignId}/notes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
