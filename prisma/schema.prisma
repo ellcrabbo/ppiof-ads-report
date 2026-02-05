@@ -33,6 +33,13 @@ model ImportRun {
   platform    String   // 'meta', 'facebook', 'instagram'
   rowCount    Int
   createdAt   DateTime @default(now())
+  rowsProcessed    Int   @default(0)
+  rowsDropped      Int   @default(0)
+  duplicatesMerged Int   @default(0)
+  totalSpend       Float @default(0)
+  totalImpressions Int   @default(0)
+  totalClicks      Int   @default(0)
+  totalResults     Int   @default(0)
   Campaign    Campaign[]
   AdSet       AdSet[]
   Ad          Ad[]

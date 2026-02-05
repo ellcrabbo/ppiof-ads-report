@@ -41,11 +41,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Create import run
+    const previousImportRun = await db.importRun.findFirst({
+      where: { platform: validatedData.platform },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    let totalSpend = 0;
+    let totalImpressions = 0;
+    let totalClicks = 0;
+    let totalResults = 0;
+
     const importRun = await db.importRun.create({
       data: {
         fileName: file.name,
         platform: validatedData.platform,
         rowCount: parseResult.data.length,
+        rowsProcessed: parseResult.data.length,
+        rowsDropped: parseResult.rowsDropped,
       },
     });
 
@@ -73,6 +85,11 @@ export async function POST(request: NextRequest) {
 
       const cpm = calculateCPM(spend, impressions);
       const cpc = calculateCPC(spend, clicks);
+
+      totalSpend += spend;
+      totalImpressions += impressions;
+      totalClicks += clicks;
+      totalResults += results;
 
       // Aggregate campaign data
       if (!campaignsMap.has(campaignName)) {
@@ -170,6 +187,7 @@ export async function POST(request: NextRequest) {
 
     // Insert ads
     const adMap = new Map<string, any>();
+    let duplicatesMerged = 0;
 
     for (const row of parseResult.data) {
       const campaignName = row.campaignName || 'Unknown Campaign';
@@ -211,6 +229,8 @@ export async function POST(request: NextRequest) {
           cpc: 0,
           rawRow: JSON.stringify(row),
         });
+      } else {
+        duplicatesMerged += 1;
       }
 
       const ad = adMap.get(adKey)!;
@@ -226,6 +246,26 @@ export async function POST(request: NextRequest) {
       data: Array.from(adMap.values()),
     });
 
+    await db.importRun.update({
+      where: { id: importRun.id },
+      data: {
+        duplicatesMerged,
+        totalSpend,
+        totalImpressions,
+        totalClicks,
+        totalResults,
+      },
+    });
+
+    const diffFromPrevious = previousImportRun
+      ? {
+          spend: totalSpend - previousImportRun.totalSpend,
+          impressions: totalImpressions - previousImportRun.totalImpressions,
+          clicks: totalClicks - previousImportRun.totalClicks,
+          results: totalResults - previousImportRun.totalResults,
+        }
+      : null;
+
     return NextResponse.json({
       success: true,
       importRunId: importRun.id,
@@ -233,6 +273,18 @@ export async function POST(request: NextRequest) {
       adSetsCreated: createdAdSets.length,
       adsCreated: adMap.size,
       warnings: parseResult.warnings,
+      importSummary: {
+        rowsProcessed: parseResult.data.length,
+        rowsDropped: parseResult.rowsDropped,
+        duplicatesMerged,
+        totals: {
+          spend: totalSpend,
+          impressions: totalImpressions,
+          clicks: totalClicks,
+          results: totalResults,
+        },
+        diffFromPrevious,
+      },
     });
   } catch (error) {
     console.error('Upload error:', error);

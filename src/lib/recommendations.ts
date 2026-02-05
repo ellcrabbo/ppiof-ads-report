@@ -8,10 +8,10 @@ export interface MetricComparison {
 }
 
 export interface Recommendation {
-  summary: string;
-  whatHappened: string;
-  whatToChange: string;
-  whatToTest: string;
+  claim: string;
+  evidence: string;
+  suggestedAction: string;
+  confidence: number; // 0-1
   severity: 'high' | 'medium' | 'low';
   metrics: string[];
 }
@@ -58,14 +58,16 @@ export function generateCampaignRecommendations(
   const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
   const conversionRate = clicks > 0 ? (results / clicks) * 100 : 0;
   const costPerResult = results > 0 ? spend / results : 0;
+  const confidence = calculateConfidence({ impressions, clicks, results });
 
   // High CPC Recommendation
   if (cpc > 3) {
     recommendations.push({
-      summary: 'High Cost Per Click',
-      whatHappened: `CPC is $${cpc.toFixed(2)}, which is significantly higher than industry benchmarks ($1-2 for most verticals).`,
-      whatToChange: 'Review audience targeting - consider narrowing to more specific segments. Test different ad placements and optimize creative for higher click-through rates.',
-      whatToTest: 'A/B test new creatives with different value propositions. Test lookalike audiences based on converters. Consider adjusting bid strategy to lowest cost.',
+      claim: 'Cost per click is high relative to efficient ranges.',
+      evidence: `CPC is $${cpc.toFixed(2)} across ${clicks.toLocaleString()} clicks (${ctr.toFixed(2)}% CTR).`,
+      suggestedAction:
+        'Tighten targeting, refresh creative, and test alternative placements to lift CTR and reduce CPC.',
+      confidence,
       severity: 'high',
       metrics: ['CPC', 'Clicks', 'Impressions'],
     });
@@ -74,10 +76,11 @@ export function generateCampaignRecommendations(
   // Low CTR Recommendation
   if (ctr < 0.5) {
     recommendations.push({
-      summary: 'Low Click-Through Rate',
-      whatHappened: `CTR is ${ctr.toFixed(2)}%, indicating ads may not be resonating with the audience.`,
-      whatToChange: 'Refresh ad creative with new images, copy, or formats. Review ad copy for clarity and compelling offers. Ensure headlines are attention-grabbing.',
-      whatToTest: 'Test carousel ads vs single image. Test video vs static. Test different calls-to-action. Try different ad placements (e.g., Stories, Feed).',
+      claim: 'Click-through rate is low.',
+      evidence: `CTR is ${ctr.toFixed(2)}% on ${impressions.toLocaleString()} impressions.`,
+      suggestedAction:
+        'Refresh creative and copy; test new formats (carousel/video) and stronger CTAs.',
+      confidence,
       severity: 'high',
       metrics: ['CTR', 'Impressions', 'Clicks'],
     });
@@ -86,10 +89,11 @@ export function generateCampaignRecommendations(
   // Low Conversion Rate
   if (conversionRate < 2 && results > 0) {
     recommendations.push({
-      summary: 'Low Conversion Rate',
-      whatHappened: `Conversion rate is ${conversionRate.toFixed(2)}%. Clickers are not converting.`,
-      whatToChange: 'Review landing page experience. Ensure clear call-to-action and value proposition. Check for friction in conversion funnel.',
-      whatToTest: 'A/B test landing page elements (headline, CTA, form fields). Test different offers or incentives. Consider retargeting campaigns for non-converters.',
+      claim: 'Conversion rate is underperforming.',
+      evidence: `Conversion rate is ${conversionRate.toFixed(2)}% with ${results.toLocaleString()} results.`,
+      suggestedAction:
+        'Audit landing page friction and test offers; consider retargeting non-converters.',
+      confidence,
       severity: cpc > 2 ? 'high' : 'medium',
       metrics: ['Conversion Rate', 'Results', 'Clicks'],
     });
@@ -98,10 +102,11 @@ export function generateCampaignRecommendations(
   // High CPM Recommendation
   if (cpm > 20) {
     recommendations.push({
-      summary: 'High Cost Per Mille',
-      whatHappened: `CPM is $${cpm.toFixed(2)}, indicating high competition or inefficient targeting.`,
-      whatToChange: 'Consider expanding audience to reduce competition. Test campaign objectives to find more efficient delivery times. Review geographic targeting for cost optimization.',
-      whatToTest: 'Test audience lookalikes at different percentages. Test different campaign objectives. Consider dayparting to advertise during lower-competition hours.',
+      claim: 'CPM is elevated, indicating inefficient delivery.',
+      evidence: `CPM is $${cpm.toFixed(2)} across ${impressions.toLocaleString()} impressions.`,
+      suggestedAction:
+        'Broaden audiences and test objectives/placements to lower CPM.',
+      confidence,
       severity: 'medium',
       metrics: ['CPM', 'Spend', 'Impressions'],
     });
@@ -110,10 +115,11 @@ export function generateCampaignRecommendations(
   // CPC Increased Significantly
   if (cpcChangePercent && cpcChangePercent > 30 && previousCampaign) {
     recommendations.push({
-      summary: 'CPC Increased Significantly',
-      whatHappened: `CPC rose from $${previousCampaign.cpc?.toFixed(2) || '0'} to $${cpc.toFixed(2)} (${cpcChangePercent.toFixed(1)}% increase).`,
-      whatToChange: 'Audit audience targeting for saturation. Review creative for fatigue. Consider refreshing campaigns that have been running too long.',
-      whatToTest: 'Test new audience segments. Launch new creative variations. Consider pausing underperforming ads and reallocating budget to top performers.',
+      claim: 'Cost per click increased materially versus previous period.',
+      evidence: `CPC rose from $${previousCampaign.cpc?.toFixed(2) || '0'} to $${cpc.toFixed(2)} (${cpcChangePercent.toFixed(1)}% increase).`,
+      suggestedAction:
+        'Refresh creative and rotate audiences to address fatigue; reallocate budget to top performers.',
+      confidence,
       severity: cpcChangePercent > 50 ? 'high' : 'medium',
       metrics: ['CPC', 'Spend', 'Clicks'],
     });
@@ -124,10 +130,11 @@ export function generateCampaignRecommendations(
     const frequency = impressions / reach;
     if (frequency > 5) {
       recommendations.push({
-        summary: 'High Ad Frequency',
-        whatHappened: `Average frequency is ${frequency.toFixed(1)}x, indicating audiences may be seeing ads too often.`,
-        whatToChange: 'Expand audience to reach new people. Increase budget for new audiences. Consider campaign frequency capping.',
-        whatToTest: 'Test lookalike audiences at different percentages. Test new interest-based audiences. Consider launching campaigns in new markets.',
+        claim: 'Ad frequency is high and may indicate fatigue.',
+        evidence: `Average frequency is ${frequency.toFixed(1)}x (impressions/reach).`,
+        suggestedAction:
+          'Expand audiences or add frequency caps; test new markets.',
+        confidence,
         severity: 'medium',
         metrics: ['Frequency', 'Reach', 'Impressions'],
       });
@@ -137,10 +144,11 @@ export function generateCampaignRecommendations(
   // High Spend with Low Results
   if (spend > 100 && results < 10) {
     recommendations.push({
-      summary: 'Low Return on Spend',
-      whatHappened: `$${spend.toFixed(2)} spent with only ${results} results (Cost per result: $${costPerResult.toFixed(2)}).`,
-      whatToChange: 'Review campaign objective alignment. Audit targeting and creative. Consider reallocating budget to better-performing campaigns.',
-      whatToTest: 'Test different campaign objectives. Test conversion events optimization. Review pixel setup and tracking accuracy.',
+      claim: 'Return on spend is weak.',
+      evidence: `$${spend.toFixed(2)} spent for ${results} results (CPR $${costPerResult.toFixed(2)}).`,
+      suggestedAction:
+        'Audit targeting and creative; shift budget to stronger performers.',
+      confidence,
       severity: 'high',
       metrics: ['Spend', 'Results', 'Cost Per Result'],
     });
@@ -149,20 +157,21 @@ export function generateCampaignRecommendations(
   // Good Performance - Maintain Recommendation
   if (ctr > 1 && cpc < 2 && conversionRate > 3) {
     recommendations.push({
-      summary: 'Strong Performance',
-      whatHappened: `Campaign showing strong metrics: CTR ${ctr.toFixed(2)}%, CPC $${cpc.toFixed(2)}, Conversion Rate ${conversionRate.toFixed(2)}%.`,
-      whatToChange: 'Maintain current strategy. Consider scaling budget incrementally while monitoring efficiency.',
-      whatToTest: 'Test scaling by 20-30% to see if performance holds. Test new audiences similar to current performers. Expand to similar products or offers.',
+      claim: 'Performance is strong and scalable.',
+      evidence: `CTR ${ctr.toFixed(2)}%, CPC $${cpc.toFixed(2)}, Conversion Rate ${conversionRate.toFixed(2)}%.`,
+      suggestedAction:
+        'Scale budget gradually (+20–30%) while monitoring efficiency.',
+      confidence,
       severity: 'low',
       metrics: ['CTR', 'CPC', 'Conversion Rate'],
     });
   }
 
   return recommendations.length > 0 ? recommendations : [{
-    summary: 'Insufficient Data',
-    whatHappened: 'Not enough performance data to generate specific recommendations.',
-    whatToChange: 'Allow campaign to accumulate more data before making significant changes.',
-    whatToTest: 'Continue monitoring and check back after reaching at least 1,000 impressions or 100 clicks.',
+    claim: 'Insufficient data to recommend changes.',
+    evidence: 'Need more delivery to make confident recommendations.',
+    suggestedAction: 'Monitor until at least 1,000 impressions or 100 clicks.',
+    confidence: 0.2,
     severity: 'low',
     metrics: ['Impressions', 'Clicks'],
   }];
@@ -187,10 +196,11 @@ export function generateAdSetRecommendations(
   // Ad set-specific recommendations
   if (ctr < 0.4) {
     recommendations.push({
-      summary: 'Low CTR for Ad Set',
-      whatHappened: `Ad set CTR is ${ctr.toFixed(2)}%, below recommended 0.5% threshold.`,
-      whatToChange: 'Review ad set targeting specificity. Audience may be too broad or not aligned with creative.',
-      whatToTest: 'A/B test different creative variations within this ad set. Test narrower audience segments based on performance.',
+      claim: 'Ad set CTR is low.',
+      evidence: `CTR ${ctr.toFixed(2)}% with ${impressions.toLocaleString()} impressions.`,
+      suggestedAction:
+        'Tighten targeting and test new creative variants within the ad set.',
+      confidence: calculateConfidence({ impressions, clicks: adSet.clicks, results: 0 }),
       severity: 'medium',
       metrics: ['CTR', 'Clicks', 'Impressions'],
     });
@@ -198,10 +208,10 @@ export function generateAdSetRecommendations(
 
   if (cpc > 3) {
     recommendations.push({
-      summary: 'High CPC in Ad Set',
-      whatHappened: `CPC of $${cpc.toFixed(2)} is above optimal range for this ad set.`,
-      whatToChange: 'Consider adjusting targeting or refreshing creative in this ad set.',
-      whatToTest: 'Test new creatives specifically for this audience. Test bid strategy adjustments.',
+      claim: 'Ad set CPC is high.',
+      evidence: `CPC $${cpc.toFixed(2)} on ${adSet.clicks.toLocaleString()} clicks.`,
+      suggestedAction: 'Refresh creative and test alternative placements.',
+      confidence: calculateConfidence({ impressions, clicks: adSet.clicks, results: 0 }),
       severity: 'high',
       metrics: ['CPC', 'Spend', 'Clicks'],
     });
@@ -209,10 +219,10 @@ export function generateAdSetRecommendations(
 
   if (recommendations.length === 0) {
     recommendations.push({
-      summary: 'Ad Set Performing Well',
-      whatHappened: 'Ad set metrics are within acceptable ranges.',
-      whatToChange: 'Continue monitoring performance.',
-      whatToTest: 'Test incremental optimizations to improve efficiency.',
+      claim: 'Ad set performance is stable.',
+      evidence: 'Metrics are within acceptable ranges.',
+      suggestedAction: 'Maintain and test incremental optimizations.',
+      confidence: calculateConfidence({ impressions, clicks: adSet.clicks, results: 0 }),
       severity: 'low',
       metrics: ['CPC', 'CTR'],
     });
@@ -240,10 +250,10 @@ export function generateAdRecommendations(
   // Ad-specific recommendations
   if (ctr < 0.4) {
     recommendations.push({
-      summary: 'Low CTR for Ad',
-      whatHappened: `Ad CTR is ${ctr.toFixed(2)}%. Creative may not be engaging.`,
-      whatToChange: 'Update ad creative, headline, or call-to-action.',
-      whatToTest: 'Test different creative formats (image vs video vs carousel). Test new copy variations.',
+      claim: 'Ad CTR is low.',
+      evidence: `CTR ${ctr.toFixed(2)}% with ${impressions.toLocaleString()} impressions.`,
+      suggestedAction: 'Test new creative formats and copy variations.',
+      confidence: calculateConfidence({ impressions, clicks, results: 0 }),
       severity: 'high',
       metrics: ['CTR', 'Clicks', 'Impressions'],
     });
@@ -251,10 +261,10 @@ export function generateAdRecommendations(
 
   if (cpc > 4) {
     recommendations.push({
-      summary: 'High CPC for Ad',
-      whatHappened: `CPC of $${cpc.toFixed(2)} indicates inefficient ad delivery.`,
-      whatToChange: 'Review creative relevance and audience fit.',
-      whatToTest: 'Test completely new creative concept. Test different ad placements.',
+      claim: 'Ad CPC is high.',
+      evidence: `CPC $${cpc.toFixed(2)} on ${clicks.toLocaleString()} clicks.`,
+      suggestedAction: 'Refresh creative and test alternate placements.',
+      confidence: calculateConfidence({ impressions, clicks, results: 0 }),
       severity: 'high',
       metrics: ['CPC', 'Spend', 'Clicks'],
     });
@@ -262,23 +272,39 @@ export function generateAdRecommendations(
 
   if (recommendations.length === 0 && spend > 10) {
     recommendations.push({
-      summary: 'Ad Performing Adequately',
-      whatHappened: `Ad showing reasonable performance with CPC at $${cpc.toFixed(2)}.`,
-      whatToChange: 'Monitor for creative fatigue over time.',
-      whatToTest: 'Test creative refresh after 2-3 weeks if CTR declines.',
+      claim: 'Ad performance is stable.',
+      evidence: `CPC $${cpc.toFixed(2)} with ${clicks.toLocaleString()} clicks.`,
+      suggestedAction: 'Monitor for fatigue and refresh creative periodically.',
+      confidence: calculateConfidence({ impressions, clicks, results: 0 }),
       severity: 'low',
       metrics: ['CPC', 'CTR'],
     });
   }
 
   return recommendations.length > 0 ? recommendations : [{
-    summary: 'Limited Data',
-    whatHappened: 'Insufficient data to evaluate ad performance.',
-    whatToChange: 'Allow more time for ad to accumulate impressions and clicks.',
-    whatToTest: 'Check back after reaching at least 500 impressions.',
+    claim: 'Limited data to evaluate this ad.',
+    evidence: 'Not enough impressions or clicks to be confident.',
+    suggestedAction: 'Wait until at least 500 impressions.',
+    confidence: 0.2,
     severity: 'low',
     metrics: ['Impressions', 'Clicks'],
   }];
+}
+
+function calculateConfidence({
+  impressions,
+  clicks,
+  results,
+}: {
+  impressions: number;
+  clicks: number;
+  results: number;
+}): number {
+  const impressionScore = Math.min(1, impressions / 100000);
+  const clickScore = Math.min(1, clicks / 1000);
+  const resultScore = Math.min(1, results / 200);
+  const raw = impressionScore * 0.4 + clickScore * 0.4 + resultScore * 0.2;
+  return Math.round(raw * 100) / 100;
 }
 
 /**

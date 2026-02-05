@@ -125,6 +125,8 @@ export interface ParseResult {
   warnings: string[];
   mapping: ColumnMapping;
   confidence: number;
+  rowsTotal: number;
+  rowsDropped: number;
 }
 
 /**
@@ -211,6 +213,8 @@ export async function parseCSVFile(
         const headers = results.meta.fields || [];
         const { mapping, confidence, warnings } = detectColumnMapping(headers);
 
+        const rowsTotal = results.data.length;
+
         // Filter out totals rows and parse numeric values
         const filteredData = results.data
           .filter((row: any) => !isTotalsRow(row))
@@ -241,6 +245,8 @@ export async function parseCSVFile(
           warnings,
           mapping,
           confidence,
+          rowsTotal,
+          rowsDropped: Math.max(0, rowsTotal - filteredData.length),
         });
       },
       error: (error) => {
@@ -252,6 +258,8 @@ export async function parseCSVFile(
           warnings: [],
           mapping: {},
           confidence: 0,
+          rowsTotal: 0,
+          rowsDropped: 0,
         });
       },
     });
