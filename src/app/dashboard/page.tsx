@@ -59,11 +59,27 @@ interface Campaign {
   };
 }
 
+interface ImportRunSummary {
+  id: string;
+  fileName: string;
+  platform: string;
+  rowCount: number;
+  createdAt: string;
+  rowsProcessed: number;
+  rowsDropped: number;
+  duplicatesMerged: number;
+  totalSpend: number;
+  totalImpressions: number;
+  totalClicks: number;
+  totalResults: number;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [latestImport, setLatestImport] = useState<ImportRunSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -86,20 +102,23 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [summaryRes, campaignsRes] = await Promise.all([
+      const [summaryRes, campaignsRes, importRes] = await Promise.all([
         fetch('/api/dashboard'),
         fetch('/api/campaigns'),
+        fetch('/api/import-runs?limit=1'),
       ]);
 
-      if (!summaryRes.ok || !campaignsRes.ok) {
+      if (!summaryRes.ok || !campaignsRes.ok || !importRes.ok) {
         throw new Error('Failed to fetch data');
       }
 
       const summaryData = await summaryRes.json();
       const campaignsData = await campaignsRes.json();
+      const importData = await importRes.json();
 
       setSummary(summaryData.data.summary);
       setCampaigns(campaignsData.data);
+      setLatestImport(importData.data?.[0] ?? null);
     } catch (error) {
       console.error('Fetch error:', error);
       toast({
@@ -146,6 +165,18 @@ export default function DashboardPage() {
         title: 'Upload Successful',
         description: `Imported ${data.campaignsCreated} campaigns, ${data.adSetsCreated} ad sets, and ${data.adsCreated} ads.`,
       });
+
+      if (data.importSummary) {
+        const diff = data.importSummary.diffFromPrevious;
+        const diffText = diff
+          ? `Δ Spend ${formatCurrency(diff.spend)}, Δ Impr. ${formatNumber(diff.impressions)}, Δ Clicks ${formatNumber(diff.clicks)}.`
+          : 'No previous import to compare.';
+
+        toast({
+          title: 'Import Summary',
+          description: `Rows processed ${formatNumber(data.importSummary.rowsProcessed)} • Dropped ${formatNumber(data.importSummary.rowsDropped)} • Duplicates merged ${formatNumber(data.importSummary.duplicatesMerged)}. ${diffText}`,
+        });
+      }
 
       if (data.warnings && data.warnings.length > 0) {
         toast({
@@ -412,6 +443,37 @@ export default function DashboardPage() {
             {exporting ? 'Exporting...' : 'Export PDF'}
           </Button>
         </div>
+
+        {latestImport && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Latest Import Summary</CardTitle>
+              <CardDescription>
+                {latestImport.fileName} • {new Date(latestImport.createdAt).toLocaleString()}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <div className="text-xs text-muted-foreground">Rows Processed</div>
+                  <div className="font-semibold">{formatNumber(latestImport.rowsProcessed)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Rows Dropped</div>
+                  <div className="font-semibold">{formatNumber(latestImport.rowsDropped)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Duplicates Merged</div>
+                  <div className="font-semibold">{formatNumber(latestImport.duplicatesMerged)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Total Spend</div>
+                  <div className="font-semibold">{formatCurrency(latestImport.totalSpend)}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Campaigns Table */}
         <Card>
