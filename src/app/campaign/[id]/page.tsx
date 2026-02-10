@@ -332,6 +332,29 @@ export default function CampaignDetailPage() {
     }
   };
 
+  const allAds = campaign
+    ? campaign.adSets.flatMap((adSet) =>
+        adSet.ads.map((ad) => ({ ...ad, adSetName: adSet.name }))
+      )
+    : [];
+
+  useEffect(() => {
+    if (!allAds.length) return;
+    const ids = new Set(allAds.map((ad) => ad.id));
+
+    if (!compareAId || !ids.has(compareAId)) {
+      setCompareAId(allAds[0].id);
+    }
+
+    if (allAds.length > 1) {
+      if (!compareBId || !ids.has(compareBId)) {
+        setCompareBId(allAds[1].id);
+      }
+    } else if (compareBId) {
+      setCompareBId(null);
+    }
+  }, [allAds, compareAId, compareBId]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -370,22 +393,6 @@ export default function CampaignDetailPage() {
       </div>
     );
   }
-
-  const allAds = campaign
-    ? campaign.adSets.flatMap((adSet) =>
-        adSet.ads.map((ad) => ({ ...ad, adSetName: adSet.name }))
-      )
-    : [];
-
-  useEffect(() => {
-    if (!allAds.length) return;
-    if (!compareAId) {
-      setCompareAId(allAds[0].id);
-    }
-    if (!compareBId && allAds.length > 1) {
-      setCompareBId(allAds[1].id);
-    }
-  }, [allAds, compareAId, compareBId]);
 
   if (!campaign) {
     return null;
