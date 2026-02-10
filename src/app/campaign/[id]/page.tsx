@@ -371,6 +371,22 @@ export default function CampaignDetailPage() {
     );
   }
 
+  const allAds = campaign
+    ? campaign.adSets.flatMap((adSet) =>
+        adSet.ads.map((ad) => ({ ...ad, adSetName: adSet.name }))
+      )
+    : [];
+
+  useEffect(() => {
+    if (!allAds.length) return;
+    if (!compareAId) {
+      setCompareAId(allAds[0].id);
+    }
+    if (!compareBId && allAds.length > 1) {
+      setCompareBId(allAds[1].id);
+    }
+  }, [allAds, compareAId, compareBId]);
+
   if (!campaign) {
     return null;
   }
@@ -391,20 +407,6 @@ export default function CampaignDetailPage() {
       return ctrB - ctrA;
     })
     .slice(0, 10);
-
-  const allAds = campaign.adSets.flatMap((adSet) =>
-    adSet.ads.map((ad) => ({ ...ad, adSetName: adSet.name }))
-  );
-
-  useEffect(() => {
-    if (!allAds.length) return;
-    if (!compareAId) {
-      setCompareAId(allAds[0].id);
-    }
-    if (!compareBId && allAds.length > 1) {
-      setCompareBId(allAds[1].id);
-    }
-  }, [allAds, compareAId, compareBId]);
 
   const getAdMetrics = (ad: (typeof allAds)[number]) => {
     const ctrValue = ad.impressions > 0 ? (ad.clicks / ad.impressions) * 100 : 0;
