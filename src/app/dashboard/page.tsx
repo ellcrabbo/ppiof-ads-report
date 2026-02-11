@@ -12,7 +12,17 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { MarketingTerm } from '@/components/marketing-term';
-import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid } from 'recharts';
+import {
+  ComposedChart,
+  Bar,
+  Line,
+  Legend,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  CartesianGrid,
+} from 'recharts';
 import {
   BarChart3,
   Upload,
@@ -28,6 +38,7 @@ import {
   Send,
   Bot,
   Loader2,
+  X,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -82,6 +93,8 @@ export default function DashboardPage() {
   ]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+  const [chatOpen, setChatOpen] = useState(true);
+  const [hasAutoCollapsed, setHasAutoCollapsed] = useState(false);
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,6 +106,15 @@ export default function DashboardPage() {
       fetchData();
     }
   }, [status, router]);
+
+  useEffect(() => {
+    if (loading || hasAutoCollapsed) return;
+    const timer = setTimeout(() => {
+      setChatOpen(false);
+      setHasAutoCollapsed(true);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [loading, hasAutoCollapsed]);
 
   const fetchData = async () => {
     try {
@@ -232,27 +254,32 @@ export default function DashboardPage() {
     return true;
   });
 
-  const spendChartData = [...filteredCampaigns]
+  const performanceMixData = [...filteredCampaigns]
     .sort((a, b) => b.spend - a.spend)
     .slice(0, 8)
     .map((campaign) => ({
       name: campaign.name.length > 18 ? `${campaign.name.slice(0, 17)}…` : campaign.name,
       spend: Number(campaign.spend.toFixed(2)),
       ctr: campaign.impressions > 0 ? Number(((campaign.clicks / campaign.impressions) * 100).toFixed(2)) : 0,
-      cpc: Number((campaign.cpc || 0).toFixed(2)),
     }));
 
   const efficiencyRows = [...filteredCampaigns]
-    .filter((campaign) => campaign.impressions > 0)
+    .filter((campaign) => campaign.impressions > 0 && campaign.clicks > 0)
     .map((campaign) => ({
       id: campaign.id,
       name: campaign.name,
-      ctr: (campaign.clicks / campaign.impressions) * 100,
+      ctr: campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0,
       cpc: campaign.cpc || 0,
-      spend: campaign.spend,
+      ctrDelta: campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 - (summary?.ctr || 0) : 0,
+      cpcDelta: (summary?.avgCPC || 0) - (campaign.cpc || 0),
+      efficiencyScore: campaign.impressions > 0
+        ? ((campaign.clicks / campaign.impressions) * 100) / Math.max(campaign.cpc || 0, 0.01)
+        : 0,
     }))
-    .sort((a, b) => b.spend - a.spend)
+    .sort((a, b) => b.efficiencyScore - a.efficiencyScore)
     .slice(0, 6);
+
+  const maxEfficiencyScore = Math.max(...efficiencyRows.map((row) => row.efficiencyScore), 1);
 
   const formatNumber = (num: number): string => {
     return new Intl.NumberFormat('en-US').format(Math.round(num));
@@ -263,6 +290,25 @@ export default function DashboardPage() {
       style: 'currency',
       currency: 'USD',
     }).format(num);
+  };
+
+  const getEfficiencyTone = (ctrDelta: number, cpcDelta: number) => {
+    if (ctrDelta >= 0.2 && cpcDelta >= 0.01) {
+      return {
+        label: 'Strong',
+        className: 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
+      };
+    }
+    if (ctrDelta >= 0 || cpcDelta >= 0) {
+      return {
+        label: 'Solid',
+        className: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
+      };
+    }
+    return {
+      label: 'Watch',
+      className: 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
+    };
   };
 
   const sendChatMessage = async () => {
@@ -466,17 +512,19 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
           <Card className="xl:col-span-2">
             <CardHeader>
-              <CardTitle>Spend by Campaign</CardTitle>
-              <CardDescription>Top 8 campaigns by spend</CardDescription>
+              <CardTitle>Spend vs CTR</CardTitle>
+              <CardDescription>
+                Spend bars with CTR trend line so you can spot expensive but weak campaigns fast.
+              </CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
-              {spendChartData.length === 0 ? (
+              {performanceMixData.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
                   No chart data available
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={spendChartData} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
+                  <ComposedChart data={performanceMixData} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
                     <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                     <XAxis
                       dataKey="name"
@@ -486,13 +534,38 @@ export default function DashboardPage() {
                       height={55}
                       interval={0}
                     />
-                    <YAxis tickFormatter={(value) => `$${Math.round(value).toLocaleString()}`} tick={{ fontSize: 11 }} />
+                    <YAxis
+                      yAxisId="left"
+                      tickFormatter={(value) => `$${Math.round(value).toLocaleString()}`}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      tickFormatter={(value) => `${value}%`}
+                      tick={{ fontSize: 11 }}
+                    />
                     <RechartsTooltip
-                      formatter={(value: number) => [formatCurrency(Number(value)), 'Spend']}
+                      formatter={(value: number, key: string) => {
+                        if (key === 'spend') return [formatCurrency(Number(value)), 'Spend'];
+                        if (key === 'ctr') return [`${Number(value).toFixed(2)}%`, 'CTR'];
+                        return [String(value), key];
+                      }}
                       contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)' }}
                     />
-                    <Bar dataKey="spend" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                  </BarChart>
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Bar yAxisId="left" dataKey="spend" name="Spend" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="ctr"
+                      name="CTR %"
+                      stroke="#0ea5e9"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 4 }}
+                    />
+                  </ComposedChart>
                 </ResponsiveContainer>
               )}
             </CardContent>
@@ -500,32 +573,42 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Performance Comparison</CardTitle>
-              <CardDescription>CTR and CPC vs account average</CardDescription>
+              <CardTitle>Efficiency Snapshot</CardTitle>
+              <CardDescription>
+                Ranked by CTR relative to CPC. No red flags, just quick prioritization.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {efficiencyRows.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No comparison data available.</p>
                 ) : (
-                  efficiencyRows.map((row) => {
-                    const ctrDelta = row.ctr - (summary?.ctr || 0);
-                    const cpcDelta = row.cpc - (summary?.avgCPC || 0);
+                  efficiencyRows.map((row, index) => {
+                    const tone = getEfficiencyTone(row.ctrDelta, row.cpcDelta);
+                    const scorePercent = Math.max(10, Math.round((row.efficiencyScore / maxEfficiencyScore) * 100));
                     return (
                       <div key={row.id} className="rounded-md border p-3">
-                        <p className="text-sm font-medium truncate">{row.name}</p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-medium truncate">{index + 1}. {row.name}</p>
+                          <span className={`text-[11px] px-2 py-0.5 rounded-full ${tone.className}`}>
+                            {tone.label}
+                          </span>
+                        </div>
+                        <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
+                          <div className="h-1.5 rounded-full bg-primary" style={{ width: `${scorePercent}%` }} />
+                        </div>
                         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                           <span>CTR {row.ctr.toFixed(2)}%</span>
-                          <span className={ctrDelta >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            {ctrDelta >= 0 ? '+' : ''}
-                            {ctrDelta.toFixed(2)} vs avg
+                          <span>
+                            {row.ctrDelta >= 0 ? '+' : ''}
+                            {row.ctrDelta.toFixed(2)} vs avg
                           </span>
                         </div>
                         <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
                           <span>CPC {formatCurrency(row.cpc)}</span>
-                          <span className={cpcDelta <= 0 ? 'text-green-600' : 'text-red-600'}>
-                            {cpcDelta <= 0 ? '' : '+'}
-                            {formatCurrency(cpcDelta)} vs avg
+                          <span>
+                            {row.cpcDelta >= 0 ? '-' : '+'}
+                            {formatCurrency(Math.abs(row.cpcDelta))} vs avg
                           </span>
                         </div>
                       </div>
@@ -641,59 +724,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Quick Q&A */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bot className="h-4 w-4" />
-              Ask the Dashboard
-            </CardTitle>
-            <CardDescription>
-              Get quick answers without manually scanning tables.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-md border p-3 h-[220px] overflow-y-auto space-y-3 bg-muted/20">
-              {chatMessages.map((message, index) => (
-                <div
-                  key={`${message.role}-${index}`}
-                  className={`rounded-md px-3 py-2 text-sm ${
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground ml-8'
-                      : 'bg-background border mr-8'
-                  }`}
-                >
-                  {message.content}
-                </div>
-              ))}
-              {chatLoading && (
-                <div className="bg-background border mr-8 rounded-md px-3 py-2 text-sm flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Thinking...
-                </div>
-              )}
-            </div>
-
-            <div className="mt-3 flex gap-2">
-              <Input
-                placeholder='Ask, e.g. "Which campaign has the best CTR?"'
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    sendChatMessage();
-                  }
-                }}
-                disabled={chatLoading}
-              />
-              <Button onClick={sendChatMessage} disabled={chatLoading || !chatInput.trim()}>
-                <Send className="h-4 w-4 mr-2" />
-                Send
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </main>
 
       {/* Footer */}
@@ -702,6 +732,79 @@ export default function DashboardPage() {
           PPIOF Ads Report © {new Date().getFullYear()}
         </div>
       </footer>
+
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
+        {chatOpen && (
+          <Card className="w-[340px] shadow-xl">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Bot className="h-4 w-4" />
+                    Ask the Dashboard
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Quick answers on campaigns, spend, CTR, CPC, and totals.
+                  </CardDescription>
+                </div>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setChatOpen(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border p-3 h-[220px] overflow-y-auto space-y-3 bg-muted/20">
+                {chatMessages.map((message, index) => (
+                  <div
+                    key={`${message.role}-${index}`}
+                    className={`rounded-md px-3 py-2 text-sm ${
+                      message.role === 'user'
+                        ? 'bg-primary text-primary-foreground ml-8'
+                        : 'bg-background border mr-8'
+                    }`}
+                  >
+                    {message.content}
+                  </div>
+                ))}
+                {chatLoading && (
+                  <div className="bg-background border mr-8 rounded-md px-3 py-2 text-sm flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Thinking...
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3 flex gap-2">
+                <Input
+                  placeholder='Ask, e.g. "Which campaign has the best CTR?"'
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      sendChatMessage();
+                    }
+                  }}
+                  disabled={chatLoading}
+                />
+                <Button onClick={sendChatMessage} disabled={chatLoading || !chatInput.trim()}>
+                  <Send className="h-4 w-4 mr-2" />
+                  Send
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <Button
+          size="icon"
+          className="h-12 w-12 rounded-full shadow-lg"
+          onClick={() => setChatOpen((prev) => !prev)}
+          aria-label={chatOpen ? 'Close chat' : 'Open chat'}
+        >
+          <Bot className="h-5 w-5" />
+        </Button>
+      </div>
     </div>
   );
 }
