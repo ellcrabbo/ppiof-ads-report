@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { MarketingTerm } from '@/components/marketing-term';
+import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid } from 'recharts';
 import {
   BarChart3,
   Upload,
@@ -24,6 +25,9 @@ import {
   Target,
   AlertCircle,
   Search,
+  Send,
+  Bot,
+  Loader2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -56,14 +60,28 @@ interface Campaign {
   };
 }
 
+interface ChatMessage {
+  role: 'assistant' | 'user';
+  content: string;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      role: 'assistant',
+      content:
+        'Ask me anything about this dataset, e.g. "top campaign by spend", "overall CTR", or "how many campaigns do we have?"',
+    },
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -214,6 +232,28 @@ export default function DashboardPage() {
     return true;
   });
 
+  const spendChartData = [...filteredCampaigns]
+    .sort((a, b) => b.spend - a.spend)
+    .slice(0, 8)
+    .map((campaign) => ({
+      name: campaign.name.length > 18 ? `${campaign.name.slice(0, 17)}…` : campaign.name,
+      spend: Number(campaign.spend.toFixed(2)),
+      ctr: campaign.impressions > 0 ? Number(((campaign.clicks / campaign.impressions) * 100).toFixed(2)) : 0,
+      cpc: Number((campaign.cpc || 0).toFixed(2)),
+    }));
+
+  const efficiencyRows = [...filteredCampaigns]
+    .filter((campaign) => campaign.impressions > 0)
+    .map((campaign) => ({
+      id: campaign.id,
+      name: campaign.name,
+      ctr: (campaign.clicks / campaign.impressions) * 100,
+      cpc: campaign.cpc || 0,
+      spend: campaign.spend,
+    }))
+    .sort((a, b) => b.spend - a.spend)
+    .slice(0, 6);
+
   const formatNumber = (num: number): string => {
     return new Intl.NumberFormat('en-US').format(Math.round(num));
   };
@@ -223,6 +263,40 @@ export default function DashboardPage() {
       style: 'currency',
       currency: 'USD',
     }).format(num);
+  };
+
+  const sendChatMessage = async () => {
+    const question = chatInput.trim();
+    if (!question || chatLoading) return;
+
+    setChatMessages((prev) => [...prev, { role: 'user', content: question }]);
+    setChatInput('');
+    setChatLoading(true);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to get answer');
+      }
+
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: data.answer }]);
+    } catch (error) {
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: `I couldn't answer that right now: ${(error as Error).message}`,
+        },
+      ]);
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   if (loading) {
@@ -388,6 +462,81 @@ export default function DashboardPage() {
           </Button>
         </div>
 
+        {/* Visual Insights */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
+          <Card className="xl:col-span-2">
+            <CardHeader>
+              <CardTitle>Spend by Campaign</CardTitle>
+              <CardDescription>Top 8 campaigns by spend</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              {spendChartData.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+                  No chart data available
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={spendChartData} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
+                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
+                    <XAxis
+                      dataKey="name"
+                      angle={-25}
+                      textAnchor="end"
+                      tick={{ fontSize: 11 }}
+                      height={55}
+                      interval={0}
+                    />
+                    <YAxis tickFormatter={(value) => `$${Math.round(value).toLocaleString()}`} tick={{ fontSize: 11 }} />
+                    <RechartsTooltip
+                      formatter={(value: number) => [formatCurrency(Number(value)), 'Spend']}
+                      contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)' }}
+                    />
+                    <Bar dataKey="spend" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Performance Comparison</CardTitle>
+              <CardDescription>CTR and CPC vs account average</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {efficiencyRows.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No comparison data available.</p>
+                ) : (
+                  efficiencyRows.map((row) => {
+                    const ctrDelta = row.ctr - (summary?.ctr || 0);
+                    const cpcDelta = row.cpc - (summary?.avgCPC || 0);
+                    return (
+                      <div key={row.id} className="rounded-md border p-3">
+                        <p className="text-sm font-medium truncate">{row.name}</p>
+                        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                          <span>CTR {row.ctr.toFixed(2)}%</span>
+                          <span className={ctrDelta >= 0 ? 'text-green-600' : 'text-red-600'}>
+                            {ctrDelta >= 0 ? '+' : ''}
+                            {ctrDelta.toFixed(2)} vs avg
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+                          <span>CPC {formatCurrency(row.cpc)}</span>
+                          <span className={cpcDelta <= 0 ? 'text-green-600' : 'text-red-600'}>
+                            {cpcDelta <= 0 ? '' : '+'}
+                            {formatCurrency(cpcDelta)} vs avg
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Campaigns Table */}
         <Card>
           <CardHeader>
@@ -488,6 +637,60 @@ export default function DashboardPage() {
                   )}
                 </TableBody>
               </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Q&A */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bot className="h-4 w-4" />
+              Ask the Dashboard
+            </CardTitle>
+            <CardDescription>
+              Get quick answers without manually scanning tables.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border p-3 h-[220px] overflow-y-auto space-y-3 bg-muted/20">
+              {chatMessages.map((message, index) => (
+                <div
+                  key={`${message.role}-${index}`}
+                  className={`rounded-md px-3 py-2 text-sm ${
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground ml-8'
+                      : 'bg-background border mr-8'
+                  }`}
+                >
+                  {message.content}
+                </div>
+              ))}
+              {chatLoading && (
+                <div className="bg-background border mr-8 rounded-md px-3 py-2 text-sm flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Thinking...
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 flex gap-2">
+              <Input
+                placeholder='Ask, e.g. "Which campaign has the best CTR?"'
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    sendChatMessage();
+                  }
+                }}
+                disabled={chatLoading}
+              />
+              <Button onClick={sendChatMessage} disabled={chatLoading || !chatInput.trim()}>
+                <Send className="h-4 w-4 mr-2" />
+                Send
+              </Button>
             </div>
           </CardContent>
         </Card>

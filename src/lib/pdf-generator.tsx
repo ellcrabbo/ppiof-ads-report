@@ -1,116 +1,232 @@
-import { Campaign, AdSet, Ad } from '@prisma/client';
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { Campaign, Ad, AdSet } from '@prisma/client';
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
   page: {
-    padding: 30,
+    paddingTop: 24,
+    paddingRight: 24,
+    paddingBottom: 24,
+    paddingLeft: 24,
     fontFamily: 'Helvetica',
+    fontSize: 10,
+    color: '#111827',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
   title: {
-    fontSize: 24,
-    marginBottom: 10,
+    fontSize: 20,
     fontWeight: 'bold',
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
-    marginBottom: 20,
-    color: '#666',
+    fontSize: 10,
+    color: '#4B5563',
+  },
+  generated: {
+    fontSize: 9,
+    color: '#6B7280',
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 14,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
-    marginBottom: 10,
-    backgroundColor: '#f0f0f0',
-    padding: 5,
-  },
-  row: {
-    flexDirection: 'row',
     marginBottom: 8,
+    color: '#111827',
   },
-  label: {
-    width: 150,
-    fontSize: 11,
-    color: '#666',
-  },
-  value: {
-    flex: 1,
-    fontSize: 11,
-  },
-  kpiGrid: {
+  summaryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 15,
+    marginLeft: -4,
+    marginRight: -4,
   },
-  kpiCard: {
-    width: '48%',
-    marginBottom: 10,
-    padding: 10,
-    backgroundColor: '#f9f9f9',
-    marginRight: '2%',
+  summaryCard: {
+    width: '33.33%',
+    paddingLeft: 4,
+    paddingRight: 4,
+    marginBottom: 8,
   },
-  kpiLabel: {
-    fontSize: 10,
-    color: '#666',
+  summaryCardInner: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 6,
+    paddingTop: 8,
+    paddingRight: 8,
+    paddingBottom: 8,
+    paddingLeft: 8,
+    backgroundColor: '#F9FAFB',
+  },
+  summaryLabel: {
+    fontSize: 9,
+    color: '#6B7280',
     marginBottom: 3,
   },
-  kpiValue: {
-    fontSize: 18,
+  summaryValue: {
+    fontSize: 14,
     fontWeight: 'bold',
+    color: '#111827',
+  },
+  insightsBox: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 6,
+    paddingTop: 8,
+    paddingRight: 8,
+    paddingBottom: 8,
+    paddingLeft: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  insightLine: {
+    marginBottom: 4,
+    color: '#374151',
   },
   table: {
-    width: '100%',
-    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#F3F4F6',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    paddingTop: 6,
+    paddingBottom: 6,
+    paddingLeft: 8,
+    paddingRight: 8,
   },
   tableRow: {
     flexDirection: 'row',
-    borderBottomColor: '#ccc',
     borderBottomWidth: 1,
-    padding: 5,
+    borderBottomColor: '#F3F4F6',
+    paddingTop: 5,
+    paddingBottom: 5,
+    paddingLeft: 8,
+    paddingRight: 8,
   },
-  tableHeader: {
-    backgroundColor: '#f0f0f0',
+  tableHeaderCell: {
+    fontSize: 9,
     fontWeight: 'bold',
-    fontSize: 11,
+    color: '#374151',
   },
   tableCell: {
-    fontSize: 10,
+    fontSize: 9,
+    color: '#111827',
   },
-  col1: { width: '40%' },
-  col2: { width: '15%' },
-  col3: { width: '15%' },
-  col4: { width: '15%' },
-  col5: { width: '15%' },
-  recommendation: {
-    marginBottom: 10,
-    padding: 10,
-    backgroundColor: '#fff8e1',
-    borderLeftWidth: 3,
-    borderLeftColor: '#ffc107',
+  colCampaign: {
+    width: '40%',
   },
-  recommendationSummary: {
+  colMetric: {
+    width: '15%',
+    textAlign: 'right',
+  },
+  colCtr: {
+    width: '10%',
+    textAlign: 'right',
+  },
+  barsBox: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 6,
+    paddingTop: 8,
+    paddingRight: 8,
+    paddingBottom: 8,
+    paddingLeft: 8,
+  },
+  barRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  barLabel: {
+    width: '34%',
+    fontSize: 8,
+    color: '#374151',
+    paddingRight: 4,
+  },
+  barTrack: {
+    width: '50%',
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#E5E7EB',
+    marginRight: 6,
+  },
+  barFill: {
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#111827',
+  },
+  barValue: {
+    width: '16%',
+    textAlign: 'right',
+    fontSize: 8,
+    color: '#111827',
+  },
+  campaignCard: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 6,
+    paddingTop: 8,
+    paddingRight: 8,
+    paddingBottom: 8,
+    paddingLeft: 8,
+    marginBottom: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  campaignTitle: {
     fontSize: 11,
     fontWeight: 'bold',
     marginBottom: 4,
   },
-  recommendationText: {
-    fontSize: 10,
-    marginBottom: 3,
-    color: '#333',
+  campaignMeta: {
+    fontSize: 9,
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  campaignKpiRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  campaignKpi: {
+    width: '24%',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 4,
+    paddingTop: 4,
+    paddingRight: 4,
+    paddingBottom: 4,
+    paddingLeft: 4,
+    backgroundColor: '#F9FAFB',
+  },
+  campaignKpiLabel: {
+    fontSize: 8,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  campaignKpiValue: {
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  adSetLine: {
+    fontSize: 8,
+    color: '#374151',
+    marginBottom: 2,
   },
   footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 30,
-    right: 30,
-    fontSize: 9,
-    color: '#999',
-    textAlign: 'center',
+    marginTop: 8,
+    paddingTop: 6,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingTop: 10,
+    borderTopColor: '#E5E7EB',
+    fontSize: 8,
+    color: '#6B7280',
+    textAlign: 'center',
   },
 });
 
@@ -130,197 +246,212 @@ interface ReportData {
   totalResults: number;
 }
 
-/**
- * Generate PDF report for campaigns
- */
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 2,
+  }).format(value);
+
+const formatNumber = (value: number) =>
+  new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 0,
+  }).format(value);
+
+const truncate = (value: string, max: number) => {
+  if (value.length <= max) return value;
+  return `${value.slice(0, max - 1)}…`;
+};
+
 export function generateCampaignReportPDF(data: ReportData) {
+  const campaigns = [...data.campaigns].sort((a, b) => b.spend - a.spend);
+  const topCampaigns = campaigns.slice(0, 10);
+  const campaignCount = campaigns.length;
+
+  const ctr = data.totalImpressions > 0 ? (data.totalClicks / data.totalImpressions) * 100 : 0;
+  const cpc = data.totalClicks > 0 ? data.totalSpend / data.totalClicks : 0;
+  const cpm = data.totalImpressions > 0 ? (data.totalSpend / data.totalImpressions) * 1000 : 0;
+
+  const highestSpend = campaigns[0];
+  const bestCtr = [...campaigns]
+    .filter((campaign) => campaign.impressions > 0)
+    .sort((a, b) => b.clicks / b.impressions - a.clicks / a.impressions)[0];
+  const maxSpend = Math.max(...topCampaigns.map((campaign) => campaign.spend), 1);
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.title}>PPIOF Ads Report</Text>
-        <Text style={styles.subtitle}>
-          Date Range: {data.dateRange.start} to {data.dateRange.end}
-        </Text>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.title}>PPIOF Ads Performance Report</Text>
+            <Text style={styles.subtitle}>
+              Reporting Window: {data.dateRange.start} to {data.dateRange.end}
+            </Text>
+          </View>
+          <Text style={styles.generated}>Generated {new Date().toLocaleDateString('en-US')}</Text>
+        </View>
 
-        {/* Summary KPIs */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Summary</Text>
-          <View style={styles.kpiGrid}>
-            <View style={styles.kpiCard}>
-              <Text style={styles.kpiLabel}>Total Spend</Text>
-              <Text style={styles.kpiValue}>${data.totalSpend.toFixed(2)}</Text>
+          <Text style={styles.sectionTitle}>Executive Summary</Text>
+          <View style={styles.summaryGrid}>
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryCardInner}>
+                <Text style={styles.summaryLabel}>Campaigns</Text>
+                <Text style={styles.summaryValue}>{formatNumber(campaignCount)}</Text>
+              </View>
             </View>
-            <View style={styles.kpiCard}>
-              <Text style={styles.kpiLabel}>Total Impressions</Text>
-              <Text style={styles.kpiValue}>{data.totalImpressions.toLocaleString()}</Text>
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryCardInner}>
+                <Text style={styles.summaryLabel}>Total Spend</Text>
+                <Text style={styles.summaryValue}>{formatCurrency(data.totalSpend)}</Text>
+              </View>
             </View>
-            <View style={styles.kpiCard}>
-              <Text style={styles.kpiLabel}>Total Clicks</Text>
-              <Text style={styles.kpiValue}>{data.totalClicks.toLocaleString()}</Text>
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryCardInner}>
+                <Text style={styles.summaryLabel}>Impressions</Text>
+                <Text style={styles.summaryValue}>{formatNumber(data.totalImpressions)}</Text>
+              </View>
             </View>
-            <View style={styles.kpiCard}>
-              <Text style={styles.kpiLabel}>Total Results</Text>
-              <Text style={styles.kpiValue}>{data.totalResults.toLocaleString()}</Text>
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryCardInner}>
+                <Text style={styles.summaryLabel}>Clicks</Text>
+                <Text style={styles.summaryValue}>{formatNumber(data.totalClicks)}</Text>
+              </View>
             </View>
-            <View style={styles.kpiCard}>
-              <Text style={styles.kpiLabel}>Avg CPM</Text>
-              <Text style={styles.kpiValue}>
-                ${(data.totalSpend / data.totalImpressions * 1000 || 0).toFixed(2)}
-              </Text>
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryCardInner}>
+                <Text style={styles.summaryLabel}>CTR</Text>
+                <Text style={styles.summaryValue}>{ctr.toFixed(2)}%</Text>
+              </View>
             </View>
-            <View style={styles.kpiCard}>
-              <Text style={styles.kpiLabel}>Avg CPC</Text>
-              <Text style={styles.kpiValue}>
-                ${(data.totalSpend / data.totalClicks || 0).toFixed(2)}
-              </Text>
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryCardInner}>
+                <Text style={styles.summaryLabel}>CPM / CPC</Text>
+                <Text style={styles.summaryValue}>{formatCurrency(cpm)} / {formatCurrency(cpc)}</Text>
+              </View>
             </View>
           </View>
         </View>
 
-        {/* Campaign List */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Campaign Performance</Text>
+          <Text style={styles.sectionTitle}>Key Takeaways</Text>
+          <View style={styles.insightsBox}>
+            <Text style={styles.insightLine}>
+              • Top spend campaign: {highestSpend ? truncate(highestSpend.name, 48) : 'N/A'}
+              {highestSpend ? ` (${formatCurrency(highestSpend.spend)})` : ''}
+            </Text>
+            <Text style={styles.insightLine}>
+              • Best CTR campaign: {bestCtr ? truncate(bestCtr.name, 48) : 'N/A'}
+              {bestCtr ? ` (${((bestCtr.clicks / bestCtr.impressions) * 100).toFixed(2)}%)` : ''}
+            </Text>
+            <Text style={styles.insightLine}>
+              • Total results tracked: {formatNumber(data.totalResults)}
+            </Text>
+            <Text style={styles.insightLine}>
+              • Average CPC across all campaigns: {formatCurrency(cpc)}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Top Campaign Performance</Text>
           <View style={styles.table}>
-            <View style={[styles.tableRow, styles.tableHeader]}>
-              <Text style={[styles.tableCell, styles.col1]}>Campaign</Text>
-              <Text style={[styles.tableCell, styles.col2]}>Spend</Text>
-              <Text style={[styles.tableCell, styles.col2]}>Impr.</Text>
-              <Text style={[styles.tableCell, styles.col2]}>Clicks</Text>
-              <Text style={[styles.tableCell, styles.col2]}>CPC</Text>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableHeaderCell, styles.colCampaign]}>Campaign</Text>
+              <Text style={[styles.tableHeaderCell, styles.colMetric]}>Spend</Text>
+              <Text style={[styles.tableHeaderCell, styles.colMetric]}>Impr.</Text>
+              <Text style={[styles.tableHeaderCell, styles.colMetric]}>Clicks</Text>
+              <Text style={[styles.tableHeaderCell, styles.colCtr]}>CTR</Text>
             </View>
-            {data.campaigns.map((campaign) => (
-              <View key={campaign.id} style={styles.tableRow}>
-                <Text style={[styles.tableCell, styles.col1]}>{campaign.name}</Text>
-                <Text style={[styles.tableCell, styles.col2]}>${campaign.spend.toFixed(2)}</Text>
-                <Text style={[styles.tableCell, styles.col2]}>{campaign.impressions.toLocaleString()}</Text>
-                <Text style={[styles.tableCell, styles.col2]}>{campaign.clicks.toLocaleString()}</Text>
-                <Text style={[styles.tableCell, styles.col2]}>
-                  ${(campaign.cpc || 0).toFixed(2)}
-                </Text>
+            {topCampaigns.map((campaign) => {
+              const campaignCtr = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0;
+              return (
+                <View key={campaign.id} style={styles.tableRow}>
+                  <Text style={[styles.tableCell, styles.colCampaign]}>{truncate(campaign.name, 46)}</Text>
+                  <Text style={[styles.tableCell, styles.colMetric]}>{formatCurrency(campaign.spend)}</Text>
+                  <Text style={[styles.tableCell, styles.colMetric]}>{formatNumber(campaign.impressions)}</Text>
+                  <Text style={[styles.tableCell, styles.colMetric]}>{formatNumber(campaign.clicks)}</Text>
+                  <Text style={[styles.tableCell, styles.colCtr]}>{campaignCtr.toFixed(2)}%</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Spend Distribution (Top Campaigns)</Text>
+          <View style={styles.barsBox}>
+            {topCampaigns.slice(0, 8).map((campaign) => (
+              <View key={`bar-${campaign.id}`} style={styles.barRow}>
+                <Text style={styles.barLabel}>{truncate(campaign.name, 30)}</Text>
+                <View style={styles.barTrack}>
+                  <View
+                    style={[
+                      styles.barFill,
+                      {
+                        width: `${Math.max(4, Math.round((campaign.spend / maxSpend) * 100))}%`,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.barValue}>{formatCurrency(campaign.spend)}</Text>
               </View>
             ))}
           </View>
         </View>
 
-        {/* Campaign Details */}
-        {data.campaigns.map((campaign) => (
-          <Page key={campaign.id} size="A4" style={styles.page}>
-            <Text style={styles.title}>Campaign: {campaign.name}</Text>
-            <Text style={styles.subtitle}>
-              Objective: {campaign.objective || 'N/A'} | Status: {campaign.status || 'N/A'}
-            </Text>
+        <Text style={styles.footer}>PPIOF Ads Report</Text>
+      </Page>
 
-            {/* Campaign KPIs */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Performance Metrics</Text>
-              <View style={styles.kpiGrid}>
-                <View style={styles.kpiCard}>
-                  <Text style={styles.kpiLabel}>Spend</Text>
-                  <Text style={styles.kpiValue}>${campaign.spend.toFixed(2)}</Text>
+      <Page size="A4" style={styles.page} wrap>
+        <Text style={styles.sectionTitle}>Campaign Drilldown (Top 8 by Spend)</Text>
+        {topCampaigns.slice(0, 8).map((campaign) => {
+          const campaignCtr = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0;
+          const topAdSets = (campaign.adSets || []).slice().sort((a, b) => b.spend - a.spend).slice(0, 3);
+
+          return (
+            <View key={`detail-${campaign.id}`} style={styles.campaignCard} wrap={false}>
+              <Text style={styles.campaignTitle}>{campaign.name}</Text>
+              <Text style={styles.campaignMeta}>
+                {campaign.platform || 'N/A'} | {campaign.status || 'N/A'}
+              </Text>
+
+              <View style={styles.campaignKpiRow}>
+                <View style={styles.campaignKpi}>
+                  <Text style={styles.campaignKpiLabel}>Spend</Text>
+                  <Text style={styles.campaignKpiValue}>{formatCurrency(campaign.spend)}</Text>
                 </View>
-                <View style={styles.kpiCard}>
-                  <Text style={styles.kpiLabel}>Impressions</Text>
-                  <Text style={styles.kpiValue}>{campaign.impressions.toLocaleString()}</Text>
+                <View style={styles.campaignKpi}>
+                  <Text style={styles.campaignKpiLabel}>Impressions</Text>
+                  <Text style={styles.campaignKpiValue}>{formatNumber(campaign.impressions)}</Text>
                 </View>
-                <View style={styles.kpiCard}>
-                  <Text style={styles.kpiLabel}>Reach</Text>
-                  <Text style={styles.kpiValue}>{campaign.reach.toLocaleString()}</Text>
+                <View style={styles.campaignKpi}>
+                  <Text style={styles.campaignKpiLabel}>Clicks</Text>
+                  <Text style={styles.campaignKpiValue}>{formatNumber(campaign.clicks)}</Text>
                 </View>
-                <View style={styles.kpiCard}>
-                  <Text style={styles.kpiLabel}>Clicks</Text>
-                  <Text style={styles.kpiValue}>{campaign.clicks.toLocaleString()}</Text>
-                </View>
-                <View style={styles.kpiCard}>
-                  <Text style={styles.kpiLabel}>Results</Text>
-                  <Text style={styles.kpiValue}>{campaign.results.toLocaleString()}</Text>
-                </View>
-                <View style={styles.kpiCard}>
-                  <Text style={styles.kpiLabel}>CTR</Text>
-                  <Text style={styles.kpiValue}>
-                    {((campaign.clicks / campaign.impressions) * 100 || 0).toFixed(2)}%
-                  </Text>
-                </View>
-                <View style={styles.kpiCard}>
-                  <Text style={styles.kpiLabel}>CPM</Text>
-                  <Text style={styles.kpiValue}>${(campaign.cpm || 0).toFixed(2)}</Text>
-                </View>
-                <View style={styles.kpiCard}>
-                  <Text style={styles.kpiLabel}>CPC</Text>
-                  <Text style={styles.kpiValue}>${(campaign.cpc || 0).toFixed(2)}</Text>
+                <View style={styles.campaignKpi}>
+                  <Text style={styles.campaignKpiLabel}>CTR</Text>
+                  <Text style={styles.campaignKpiValue}>{campaignCtr.toFixed(2)}%</Text>
                 </View>
               </View>
-            </View>
 
-            {/* Ad Sets */}
-            {campaign.adSets && campaign.adSets.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Ad Sets</Text>
-                <View style={styles.table}>
-                  <View style={[styles.tableRow, styles.tableHeader]}>
-                    <Text style={[styles.tableCell, styles.col1]}>Ad Set</Text>
-                    <Text style={[styles.tableCell, styles.col2]}>Spend</Text>
-                    <Text style={[styles.tableCell, styles.col2]}>Impr.</Text>
-                    <Text style={[styles.tableCell, styles.col2]}>Clicks</Text>
-                    <Text style={[styles.tableCell, styles.col2]}>CPC</Text>
-                  </View>
-                  {campaign.adSets.map((adSet) => (
-                    <View key={adSet.id} style={styles.tableRow}>
-                      <Text style={[styles.tableCell, styles.col1]}>{adSet.name}</Text>
-                      <Text style={[styles.tableCell, styles.col2]}>${adSet.spend.toFixed(2)}</Text>
-                      <Text style={[styles.tableCell, styles.col2]}>{adSet.impressions.toLocaleString()}</Text>
-                      <Text style={[styles.tableCell, styles.col2]}>{adSet.clicks.toLocaleString()}</Text>
-                      <Text style={[styles.tableCell, styles.col2]}>
-                        ${(adSet.cpc || 0).toFixed(2)}
-                      </Text>
-                    </View>
+              {topAdSets.length > 0 ? (
+                <>
+                  <Text style={styles.campaignKpiLabel}>Top Ad Sets by Spend</Text>
+                  {topAdSets.map((adSet) => (
+                    <Text key={adSet.id} style={styles.adSetLine}>
+                      • {truncate(adSet.name, 60)} — {formatCurrency(adSet.spend)} spend, {formatNumber(adSet.clicks)} clicks
+                    </Text>
                   ))}
-                </View>
-              </View>
-            )}
+                </>
+              ) : (
+                <Text style={styles.adSetLine}>• No ad set data available</Text>
+              )}
+            </View>
+          );
+        })}
 
-            {/* Top Ads */}
-            {campaign.adSets && campaign.adSets.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Top Performing Ads</Text>
-                <View style={styles.table}>
-                  <View style={[styles.tableRow, styles.tableHeader]}>
-                    <Text style={[styles.tableCell, styles.col1]}>Ad</Text>
-                    <Text style={[styles.tableCell, styles.col2]}>Spend</Text>
-                    <Text style={[styles.tableCell, styles.col2]}>Clicks</Text>
-                    <Text style={[styles.tableCell, styles.col2]}>CTR</Text>
-                    <Text style={[styles.tableCell, styles.col2]}>CPC</Text>
-                  </View>
-                  {campaign.adSets
-                    .flatMap(adSet => adSet.ads || [])
-                    .filter(ad => ad.impressions > 100)
-                    .sort((a, b) => {
-                      const ctrA = a.impressions > 0 ? a.clicks / a.impressions : 0;
-                      const ctrB = b.impressions > 0 ? b.clicks / b.impressions : 0;
-                      return ctrB - ctrA;
-                    })
-                    .slice(0, 5)
-                    .map((ad) => (
-                      <View key={ad.id} style={styles.tableRow}>
-                        <Text style={[styles.tableCell, styles.col1]}>{ad.name}</Text>
-                        <Text style={[styles.tableCell, styles.col2]}>${ad.spend.toFixed(2)}</Text>
-                        <Text style={[styles.tableCell, styles.col2]}>{ad.clicks.toLocaleString()}</Text>
-                        <Text style={[styles.tableCell, styles.col2]}>
-                          {((ad.clicks / ad.impressions) * 100 || 0).toFixed(2)}%
-                        </Text>
-                        <Text style={[styles.tableCell, styles.col2]}>
-                          ${(ad.cpc || 0).toFixed(2)}
-                        </Text>
-                      </View>
-                    ))}
-                </View>
-              </View>
-            )}
-
-            <Text style={styles.footer}>
-              Generated on {new Date().toLocaleDateString()} | PPIOF Ads Report
-            </Text>
-          </Page>
-        ))}
+        <Text style={styles.footer}>Generated on {new Date().toLocaleDateString('en-US')}</Text>
       </Page>
     </Document>
   );
