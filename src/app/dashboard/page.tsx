@@ -7,11 +7,11 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { MarketingTerm } from '@/components/marketing-term';
 import {
   BarChart3,
   Upload,
@@ -23,9 +23,7 @@ import {
   MousePointer2,
   Target,
   AlertCircle,
-  Filter,
   Search,
-  Calendar,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -69,10 +67,6 @@ export default function DashboardPage() {
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
-  const [platform, setPlatform] = useState('');
-  const [objective, setObjective] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -176,10 +170,7 @@ export default function DashboardPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
-        }),
+        body: JSON.stringify({}),
       });
 
       if (!res.ok) {
@@ -220,12 +211,6 @@ export default function DashboardPage() {
     if (searchTerm && !campaign.name.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
-    if (platform && campaign.platform !== platform) {
-      return false;
-    }
-    if (objective && campaign.objective !== objective) {
-      return false;
-    }
     return true;
   });
 
@@ -245,16 +230,16 @@ export default function DashboardPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <BarChart3 className="h-12 w-12 animate-pulse mx-auto mb-4 text-primary" />
-          <p className="text-slate-600">Loading dashboard...</p>
+          <p className="text-muted-foreground">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
+      <header className="bg-background border-b sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -262,11 +247,12 @@ export default function DashboardPage() {
                 <BarChart3 className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-900">PPIOF Ads Report</h1>
-                <p className="text-sm text-slate-600">Meta Ads Analytics</p>
+                <h1 className="text-xl font-bold">PPIOF Ads Report</h1>
+                <p className="text-sm text-muted-foreground">Meta Ads Analytics</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               <Button variant="outline" size="sm" onClick={() => fetchData()}>
                 <TrendingUp className="h-4 w-4 mr-2" />
                 Refresh
@@ -285,7 +271,12 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Spend</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                <MarketingTerm
+                  term="Total Spend"
+                  definition="Total ad budget used in the selected dataset."
+                />
+              </CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -297,7 +288,12 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Impressions</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                <MarketingTerm
+                  term="Impressions"
+                  definition="How many times ads were shown. One person can generate multiple impressions."
+                />
+              </CardTitle>
               <Eye className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -309,7 +305,12 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Clicks</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                <MarketingTerm
+                  term="Clicks"
+                  definition="How many times users clicked from an ad to your destination."
+                />
+              </CardTitle>
               <MousePointer2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -318,7 +319,12 @@ export default function DashboardPage() {
               </div>
               {summary && (
                 <p className="text-xs text-muted-foreground">
-                  CTR: {summary.ctr.toFixed(2)}%
+                  <MarketingTerm
+                    term="CTR"
+                    definition="Click-through rate. CTR = Clicks / Impressions × 100. Higher CTR usually means stronger ad relevance."
+                    className="text-xs"
+                  />{' '}
+                  {summary.ctr.toFixed(2)}%
                 </p>
               )}
             </CardContent>
@@ -326,7 +332,12 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg CPC</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                <MarketingTerm
+                  term="Avg CPC"
+                  definition="Cost per click. CPC = Spend / Clicks. Lower CPC means cheaper traffic."
+                />
+              </CardTitle>
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -335,7 +346,12 @@ export default function DashboardPage() {
               </div>
               {summary && (
                 <p className="text-xs text-muted-foreground">
-                  CPM: {formatCurrency(summary.avgCPM)}
+                  <MarketingTerm
+                    term="CPM"
+                    definition="Cost per thousand impressions. CPM = Spend / (Impressions / 1,000)."
+                    className="text-xs"
+                  />{' '}
+                  {formatCurrency(summary.avgCPM)}
                 </p>
               )}
             </CardContent>
@@ -386,19 +402,38 @@ export default function DashboardPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Campaign Name</TableHead>
-                    <TableHead>Objective</TableHead>
                     <TableHead>Platform</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Spend</TableHead>
-                    <TableHead className="text-right">Impressions</TableHead>
-                    <TableHead className="text-right">Clicks</TableHead>
-                    <TableHead className="text-right">CPC</TableHead>
+                    <TableHead className="text-right">
+                      <MarketingTerm
+                        term="Spend"
+                        definition="Amount spent by this campaign over the imported reporting window."
+                      />
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <MarketingTerm
+                        term="Impressions"
+                        definition="How many times this campaign's ads were served."
+                      />
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <MarketingTerm
+                        term="Clicks"
+                        definition="Total clicks generated by this campaign."
+                      />
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <MarketingTerm
+                        term="CPC"
+                        definition="Cost per click for this campaign."
+                      />
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredCampaigns.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                         <div className="flex flex-col items-center gap-2">
                           <AlertCircle className="h-8 w-8 text-muted-foreground" />
                           <p>No campaigns found</p>
@@ -410,17 +445,10 @@ export default function DashboardPage() {
                     filteredCampaigns.map((campaign) => (
                       <TableRow
                         key={campaign.id}
-                        className="cursor-pointer hover:bg-slate-50"
+                        className="cursor-pointer hover:bg-muted/40"
                         onClick={() => router.push(`/campaign/${campaign.id}`)}
                       >
                         <TableCell className="font-medium">{campaign.name}</TableCell>
-                        <TableCell>
-                          {campaign.objective ? (
-                            <Badge variant="secondary">{campaign.objective}</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">N/A</span>
-                          )}
-                        </TableCell>
                         <TableCell>
                           {campaign.platform ? (
                             <Badge variant="outline">{campaign.platform}</Badge>
@@ -466,8 +494,8 @@ export default function DashboardPage() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto bg-white border-t">
-        <div className="container mx-auto px-4 py-4 text-center text-sm text-slate-600">
+      <footer className="mt-auto bg-background border-t">
+        <div className="container mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
           PPIOF Ads Report © {new Date().getFullYear()}
         </div>
       </footer>

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { BarChart3, Upload, TrendingUp, FileText, Shield } from 'lucide-react';
 
 export default function LoginPage() {
@@ -50,7 +51,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/60 dark:from-background dark:to-muted/20 flex items-center justify-center p-4 relative">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
@@ -58,8 +62,8 @@ export default function LoginPage() {
               <BarChart3 className="h-8 w-8 text-primary-foreground" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-slate-900">PPIOF Ads Report</h1>
-          <p className="text-slate-600 mt-2">Meta Ads Analytics Dashboard</p>
+          <h1 className="text-3xl font-bold">PPIOF Ads Report</h1>
+          <p className="text-muted-foreground mt-2">Meta Ads Analytics Dashboard</p>
         </div>
 
         <Card>
@@ -94,33 +98,33 @@ export default function LoginPage() {
         </Card>
 
         <div className="mt-8 grid grid-cols-1 gap-4">
-          <div className="flex items-center gap-3 p-4 bg-white rounded-lg border shadow-sm">
+          <div className="flex items-center gap-3 p-4 bg-card rounded-lg border shadow-sm">
             <div className="bg-blue-100 p-2 rounded">
               <Upload className="h-5 w-5 text-blue-600" />
             </div>
             <div>
               <p className="font-medium text-sm">CSV Upload</p>
-              <p className="text-xs text-slate-600">Import Meta Ads data</p>
+              <p className="text-xs text-muted-foreground">Import Meta Ads data</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 bg-white rounded-lg border shadow-sm">
+          <div className="flex items-center gap-3 p-4 bg-card rounded-lg border shadow-sm">
             <div className="bg-green-100 p-2 rounded">
               <TrendingUp className="h-5 w-5 text-green-600" />
             </div>
             <div>
               <p className="font-medium text-sm">Analytics</p>
-              <p className="text-xs text-slate-600">Track performance metrics</p>
+              <p className="text-xs text-muted-foreground">Track performance metrics</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 bg-white rounded-lg border shadow-sm">
+          <div className="flex items-center gap-3 p-4 bg-card rounded-lg border shadow-sm">
             <div className="bg-purple-100 p-2 rounded">
               <FileText className="h-5 w-5 text-purple-600" />
             </div>
             <div>
               <p className="font-medium text-sm">PDF Export</p>
-              <p className="text-xs text-slate-600">Generate reports</p>
+              <p className="text-xs text-muted-foreground">Generate reports</p>
             </div>
           </div>
         </div>

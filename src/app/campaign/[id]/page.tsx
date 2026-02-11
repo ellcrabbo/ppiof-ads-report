@@ -12,6 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { MarketingTerm } from '@/components/marketing-term';
 import {
   ArrowLeft,
   DollarSign,
@@ -26,8 +28,11 @@ import {
   Play,
   Save,
   MessageSquare,
+  Lock,
+  LockOpen,
+  ExternalLink,
 } from 'lucide-react';
-import { generateCampaignRecommendations, generateAdSetRecommendations } from '@/lib/recommendations';
+import { generateCampaignRecommendations } from '@/lib/recommendations';
 
 type CreativeType = 'IMAGE' | 'VIDEO' | 'CAROUSEL' | null;
 
@@ -90,6 +95,7 @@ export default function CampaignDetailPage() {
     creativeType: CreativeType;
     creativeCarouselTotal: string;
   }>>({});
+  const [creativeUrlUnlocked, setCreativeUrlUnlocked] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!campaignId) return;
@@ -182,13 +188,13 @@ export default function CampaignDetailPage() {
   const getRecommendationColor = (severity: string) => {
     switch (severity) {
       case 'high':
-        return 'border-red-500 bg-red-50';
+        return 'border-red-500 bg-red-50 dark:bg-red-950/30';
       case 'medium':
-        return 'border-orange-500 bg-orange-50';
+        return 'border-orange-500 bg-orange-50 dark:bg-orange-950/30';
       case 'low':
-        return 'border-green-500 bg-green-50';
+        return 'border-green-500 bg-green-50 dark:bg-green-950/30';
       default:
-        return 'border-slate-500 bg-slate-50';
+        return 'border-border bg-muted';
     }
   };
 
@@ -201,7 +207,7 @@ export default function CampaignDetailPage() {
       case 'low':
         return <TrendingUp className="h-5 w-5 text-green-600" />;
       default:
-        return <FileText className="h-5 w-5 text-slate-600" />;
+        return <FileText className="h-5 w-5 text-muted-foreground" />;
     }
   };
 
@@ -248,6 +254,14 @@ export default function CampaignDetailPage() {
     });
   };
 
+  const unlockCreativeUrl = (adId: string) => {
+    setCreativeUrlUnlocked((prev) => ({ ...prev, [adId]: true }));
+  };
+
+  const lockCreativeUrl = (adId: string) => {
+    setCreativeUrlUnlocked((prev) => ({ ...prev, [adId]: false }));
+  };
+
   const handleSaveCreative = async (adId: string) => {
     const ad = campaign?.adSets.flatMap((adSet) => adSet.ads).find((item) => item.id === adId);
     if (!ad) return;
@@ -278,6 +292,20 @@ export default function CampaignDetailPage() {
         creativeType: payload.creativeType,
         creativeCarouselTotal: payload.creativeCarouselTotal,
       });
+      setCreativeEdits((prev) => {
+        const next = { ...prev };
+        delete next[adId];
+        return next;
+      });
+      if (payload.creativeUrl) {
+        lockCreativeUrl(adId);
+      } else {
+        setCreativeUrlUnlocked((prev) => {
+          const next = { ...prev };
+          delete next[adId];
+          return next;
+        });
+      }
 
       toast({
         title: 'Creative updated',
@@ -295,10 +323,10 @@ export default function CampaignDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <FileText className="h-12 w-12 animate-pulse mx-auto mb-4 text-primary" />
-          <p className="text-slate-600">Loading campaign...</p>
+          <p className="text-muted-foreground">Loading campaign...</p>
         </div>
       </div>
     );
@@ -327,21 +355,24 @@ export default function CampaignDetailPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
+      <header className="bg-background border-b sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-xl font-bold text-slate-900">{campaign.name}</h1>
-              <p className="text-sm text-slate-600">
-                {campaign.objective || 'N/A'} • {campaign.platform || 'N/A'} • {campaign.status || 'N/A'}
-              </p>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <div className="flex-1">
+                <h1 className="text-xl font-bold">{campaign.name}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {campaign.platform || 'N/A'} • {campaign.status || 'N/A'}
+                </p>
+              </div>
             </div>
+            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -351,7 +382,12 @@ export default function CampaignDetailPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Spend</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                <MarketingTerm
+                  term="Spend"
+                  definition="Total amount spent by this campaign in the imported time window."
+                />
+              </CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -361,7 +397,12 @@ export default function CampaignDetailPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Impressions</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                <MarketingTerm
+                  term="Impressions"
+                  definition="How many times this campaign's ads were served."
+                />
+              </CardTitle>
               <Eye className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -371,23 +412,47 @@ export default function CampaignDetailPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Clicks</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                <MarketingTerm
+                  term="Clicks"
+                  definition="Total number of ad clicks sent to your destination."
+                />
+              </CardTitle>
               <MousePointer2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{formatNumber(campaign.clicks)}</div>
-              <p className="text-xs text-muted-foreground mt-1">CTR: {ctr.toFixed(2)}%</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                <MarketingTerm
+                  term="CTR"
+                  definition="Click-through rate. CTR = Clicks / Impressions × 100. It measures how often people click after seeing an ad."
+                  className="text-xs"
+                />{' '}
+                {ctr.toFixed(2)}%
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">CPC</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                <MarketingTerm
+                  term="CPC"
+                  definition="Cost per click. CPC = Spend / Clicks."
+                />
+              </CardTitle>
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{formatCurrency(campaign.cpc || 0)}</div>
-              <p className="text-xs text-muted-foreground mt-1">CPM: {formatCurrency(campaign.cpm || 0)}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                <MarketingTerm
+                  term="CPM"
+                  definition="Cost per thousand impressions. CPM = Spend / (Impressions / 1,000)."
+                  className="text-xs"
+                />{' '}
+                {formatCurrency(campaign.cpm || 0)}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -416,17 +481,26 @@ export default function CampaignDetailPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Ad Set Name</TableHead>
-                        <TableHead className="text-right">Spend</TableHead>
-                        <TableHead className="text-right">Impressions</TableHead>
-                        <TableHead className="text-right">Clicks</TableHead>
-                        <TableHead className="text-right">CTR</TableHead>
-                        <TableHead className="text-right">CPC</TableHead>
+                        <TableHead className="text-right">
+                          <MarketingTerm term="Spend" definition="Amount spent by this ad set." />
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <MarketingTerm term="Impressions" definition="Total times ads from this ad set were shown." />
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <MarketingTerm term="Clicks" definition="Total ad clicks for this ad set." />
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <MarketingTerm term="CTR" definition="Click-through rate for this ad set." />
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <MarketingTerm term="CPC" definition="Cost per click for this ad set." />
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {campaign.adSets.map((adSet) => {
                         const adSetCtr = adSet.impressions > 0 ? (adSet.clicks / adSet.impressions) * 100 : 0;
-                        const adSetRecommendations = generateAdSetRecommendations(adSet);
 
                         return (
                           <TableRow key={adSet.id}>
@@ -481,11 +555,21 @@ export default function CampaignDetailPage() {
                       <TableRow>
                         <TableHead>Ad Name</TableHead>
                         <TableHead>Creative</TableHead>
-                        <TableHead className="text-right">Spend</TableHead>
-                        <TableHead className="text-right">Impressions</TableHead>
-                        <TableHead className="text-right">Clicks</TableHead>
-                        <TableHead className="text-right">CTR</TableHead>
-                        <TableHead className="text-right">CPC</TableHead>
+                        <TableHead className="text-right">
+                          <MarketingTerm term="Spend" definition="Amount spent by this ad." />
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <MarketingTerm term="Impressions" definition="Total times this ad was shown." />
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <MarketingTerm term="Clicks" definition="Total clicks generated by this ad." />
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <MarketingTerm term="CTR" definition="Click-through rate for this ad." />
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <MarketingTerm term="CPC" definition="Cost per click for this ad." />
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -582,11 +666,12 @@ export default function CampaignDetailPage() {
                           const edit = getCreativeEdit(ad);
                           const creativeUrl = edit.creativeUrl.trim();
                           const isCarousel = edit.creativeType === 'CAROUSEL';
+                          const isUrlLocked = Boolean(ad.creativeUrl) && !creativeUrlUnlocked[ad.id];
 
                           return (
                             <TableRow key={ad.id}>
                               <TableCell>
-                                <div className="h-12 w-12 rounded-md border bg-slate-50 flex items-center justify-center overflow-hidden relative">
+                                <div className="h-12 w-12 rounded-md border bg-muted flex items-center justify-center overflow-hidden relative">
                                   {creativeUrl ? (
                                     <>
                                       <img
@@ -600,7 +685,7 @@ export default function CampaignDetailPage() {
                                         </span>
                                       )}
                                       {edit.creativeType === 'CAROUSEL' && (
-                                        <span className="absolute bottom-1 right-1 rounded bg-white/90 px-1 text-[10px] text-slate-700">
+                                        <span className="absolute bottom-1 right-1 rounded bg-background/90 px-1 text-[10px] text-foreground">
                                           1/{edit.creativeCarouselTotal || '?'}
                                         </span>
                                       )}
@@ -635,26 +720,55 @@ export default function CampaignDetailPage() {
                                 </Select>
                               </TableCell>
                               <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Input
-                                    value={edit.creativeUrl}
-                                    onChange={(e) =>
-                                      updateCreativeEdit(ad.id, { creativeUrl: e.target.value })
-                                    }
-                                    placeholder="Paste creative URL"
-                                    className="min-w-[240px]"
-                                  />
-                                  {creativeUrl && (
-                                    <a
-                                      href={creativeUrl}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="text-xs text-primary underline"
+                                {isUrlLocked ? (
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="secondary">
+                                      <Lock className="mr-1 h-3 w-3" />
+                                      URL saved
+                                    </Badge>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => unlockCreativeUrl(ad.id)}
                                     >
-                                      Open
-                                    </a>
-                                  )}
-                                </div>
+                                      <LockOpen className="h-4 w-4 mr-1" />
+                                      Unlock
+                                    </Button>
+                                    {ad.creativeUrl && (
+                                      <a
+                                        href={ad.creativeUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-xs text-primary underline inline-flex items-center gap-1"
+                                      >
+                                        <ExternalLink className="h-3 w-3" />
+                                        Open
+                                      </a>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      value={edit.creativeUrl}
+                                      onChange={(e) =>
+                                        updateCreativeEdit(ad.id, { creativeUrl: e.target.value })
+                                      }
+                                      placeholder="Paste creative URL"
+                                      className="min-w-[240px]"
+                                    />
+                                    {creativeUrl && (
+                                      <a
+                                        href={creativeUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-xs text-primary underline inline-flex items-center gap-1"
+                                      >
+                                        <ExternalLink className="h-3 w-3" />
+                                        Open
+                                      </a>
+                                    )}
+                                  </div>
+                                )}
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-2">
@@ -677,7 +791,7 @@ export default function CampaignDetailPage() {
                               <TableCell className="text-right">
                                 <Button size="sm" variant="outline" onClick={() => handleSaveCreative(ad.id)}>
                                   <Save className="h-4 w-4 mr-2" />
-                                  Save
+                                  {creativeUrlUnlocked[ad.id] ? 'Save & Lock' : 'Save'}
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -766,7 +880,7 @@ export default function CampaignDetailPage() {
                   ) : (
                     <div className="space-y-3 max-h-[400px] overflow-y-auto">
                       {campaign.notes.map((note) => (
-                        <div key={note.id} className="bg-slate-50 p-3 rounded-lg">
+                        <div key={note.id} className="bg-muted p-3 rounded-lg">
                           <div className="flex justify-between items-start gap-2 mb-2">
                             <p className="text-sm flex-1">{note.content}</p>
                             <span className="text-xs text-muted-foreground whitespace-nowrap">
@@ -785,8 +899,8 @@ export default function CampaignDetailPage() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto bg-white border-t">
-        <div className="container mx-auto px-4 py-4 text-center text-sm text-slate-600">
+      <footer className="mt-auto bg-background border-t">
+        <div className="container mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
           PPIOF Ads Report © {new Date().getFullYear()}
         </div>
       </footer>
