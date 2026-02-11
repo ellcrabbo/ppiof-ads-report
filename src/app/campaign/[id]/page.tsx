@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import {
   ArrowLeft,
@@ -28,30 +27,9 @@ import {
   Save,
   MessageSquare,
 } from 'lucide-react';
-import { generateCampaignRecommendations, generateAdSetRecommendations, Recommendation } from '@/lib/recommendations';
+import { generateCampaignRecommendations, generateAdSetRecommendations } from '@/lib/recommendations';
 
 type CreativeType = 'IMAGE' | 'VIDEO' | 'CAROUSEL' | null;
-type NoteType = 'STRATEGY' | 'CREATIVE' | 'BUDGET_CHANGE' | 'EXTERNAL_FACTOR' | null;
-
-const NOTE_TYPE_LABELS: Record<Exclude<NoteType, null>, string> = {
-  STRATEGY: 'Strategy',
-  CREATIVE: 'Creative',
-  BUDGET_CHANGE: 'Budget Change',
-  EXTERNAL_FACTOR: 'External Factor',
-};
-
-const NOTE_TYPE_BADGE: Record<Exclude<NoteType, null>, 'default' | 'secondary' | 'outline'> = {
-  STRATEGY: 'default',
-  CREATIVE: 'secondary',
-  BUDGET_CHANGE: 'outline',
-  EXTERNAL_FACTOR: 'secondary',
-};
-
-const CREATIVE_TYPE_LABELS: Record<Exclude<CreativeType, null>, string> = {
-  IMAGE: 'Image',
-  VIDEO: 'Video',
-  CAROUSEL: 'Carousel',
-};
 
 interface CampaignDetail {
   id: string;
@@ -94,7 +72,6 @@ interface CampaignDetail {
   notes: Array<{
     id: string;
     content: string;
-    type: NoteType;
     createdAt: string;
     updatedAt: string;
   }>;
@@ -107,15 +84,12 @@ export default function CampaignDetailPage() {
   const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [newNote, setNewNote] = useState('');
-  const [newNoteType, setNewNoteType] = useState<NoteType>('STRATEGY');
   const [savingNote, setSavingNote] = useState(false);
   const [creativeEdits, setCreativeEdits] = useState<Record<string, {
     creativeUrl: string;
     creativeType: CreativeType;
     creativeCarouselTotal: string;
   }>>({});
-  const [compareAId, setCompareAId] = useState<string | null>(null);
-  const [compareBId, setCompareBId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!campaignId) return;
@@ -158,7 +132,7 @@ export default function CampaignDetailPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content: newNote, type: newNoteType || undefined }),
+        body: JSON.stringify({ content: newNote }),
       });
 
       if (!res.ok) {
@@ -171,7 +145,6 @@ export default function CampaignDetailPage() {
       });
 
       setNewNote('');
-      setNewNoteType('STRATEGY');
       fetchCampaign();
     } catch (error) {
       console.error('Save note error:', error);
@@ -193,8 +166,6 @@ export default function CampaignDetailPage() {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
     }).format(num);
   };
 
@@ -232,16 +203,6 @@ export default function CampaignDetailPage() {
       default:
         return <FileText className="h-5 w-5 text-slate-600" />;
     }
-  };
-
-  const getNoteTypeLabel = (type: NoteType) => {
-    if (!type) return 'General';
-    return NOTE_TYPE_LABELS[type];
-  };
-
-  const getNoteTypeVariant = (type: NoteType) => {
-    if (!type) return 'outline';
-    return NOTE_TYPE_BADGE[type];
   };
 
   const getCreativeEdit = (ad: CampaignDetail['adSets'][number]['ads'][number]) => {
@@ -332,64 +293,13 @@ export default function CampaignDetailPage() {
     }
   };
 
-  const allAds = campaign
-    ? campaign.adSets.flatMap((adSet) =>
-        adSet.ads.map((ad) => ({ ...ad, adSetName: adSet.name }))
-      )
-    : [];
-
-  useEffect(() => {
-    if (!allAds.length) return;
-    const ids = new Set(allAds.map((ad) => ad.id));
-
-    if (!compareAId || !ids.has(compareAId)) {
-      setCompareAId(allAds[0].id);
-    }
-
-    if (allAds.length > 1) {
-      if (!compareBId || !ids.has(compareBId)) {
-        setCompareBId(allAds[1].id);
-      }
-    } else if (compareBId) {
-      setCompareBId(null);
-    }
-  }, [allAds, compareAId, compareBId]);
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <header className="bg-white border-b sticky top-0 z-10">
-          <div className="container mx-auto px-4 py-4">
-            <Skeleton className="h-6 w-48" />
-          </div>
-        </header>
-        <main className="container mx-auto px-4 py-6 space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Card key={index}>
-                <CardHeader className="pb-2">
-                  <Skeleton className="h-4 w-24" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-8 w-20" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-3 w-64" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <Skeleton key={index} className="h-10 w-full" />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </main>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <FileText className="h-12 w-12 animate-pulse mx-auto mb-4 text-primary" />
+          <p className="text-slate-600">Loading campaign...</p>
+        </div>
       </div>
     );
   }
@@ -401,9 +311,6 @@ export default function CampaignDetailPage() {
   const recommendations = generateCampaignRecommendations(campaign);
 
   const ctr = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0;
-  const resultsPer100 = campaign.spend > 0 ? (campaign.results / campaign.spend) * 100 : 0;
-  const clicksPer1k = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 1000 : 0;
-  const reachPer100 = campaign.spend > 0 ? (campaign.reach / campaign.spend) * 100 : 0;
 
   const topAds = campaign.adSets
     .flatMap(adSet => adSet.ads)
@@ -415,13 +322,9 @@ export default function CampaignDetailPage() {
     })
     .slice(0, 10);
 
-  const getAdMetrics = (ad: (typeof allAds)[number]) => {
-    const ctrValue = ad.impressions > 0 ? (ad.clicks / ad.impressions) * 100 : 0;
-    const resultsPer100Value = ad.spend > 0 ? (ad.results / ad.spend) * 100 : 0;
-    const clicksPer1kValue = ad.impressions > 0 ? (ad.clicks / ad.impressions) * 1000 : 0;
-    const reachPer100Value = ad.spend > 0 ? (ad.reach / ad.spend) * 100 : 0;
-    return { ctrValue, resultsPer100Value, clicksPer1kValue, reachPer100Value };
-  };
+  const allAds = campaign.adSets.flatMap((adSet) =>
+    adSet.ads.map((ad) => ({ ...ad, adSetName: adSet.name }))
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -489,48 +392,11 @@ export default function CampaignDetailPage() {
           </Card>
         </div>
 
-        {/* Normalized Performance */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Results per $100</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{resultsPer100.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">Spend-normalized results</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Clicks per 1,000 Impr.</CardTitle>
-              <MousePointer2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{clicksPer1k.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">CTR normalized</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Reach per $100</CardTitle>
-              <Eye className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{reachPer100.toFixed(0)}</div>
-              <p className="text-xs text-muted-foreground">Spend-normalized reach</p>
-            </CardContent>
-          </Card>
-        </div>
-
         <Tabs defaultValue="adsets" className="space-y-4">
           <TabsList>
             <TabsTrigger value="adsets">Ad Sets</TabsTrigger>
             <TabsTrigger value="ads">Top Ads</TabsTrigger>
             <TabsTrigger value="creatives">Creatives</TabsTrigger>
-            <TabsTrigger value="comparisons">Comparisons</TabsTrigger>
             <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
             <TabsTrigger value="notes">Notes</TabsTrigger>
           </TabsList>
@@ -563,14 +429,7 @@ export default function CampaignDetailPage() {
                         const adSetRecommendations = generateAdSetRecommendations(adSet);
 
                         return (
-                          <TableRow
-                            key={adSet.id}
-                            className={
-                              adSet.spend === 0 && adSet.impressions === 0 && adSet.clicks === 0
-                                ? 'opacity-60'
-                                : ''
-                            }
-                          >
+                          <TableRow key={adSet.id}>
                             <TableCell className="font-medium">
                               <div>
                                 <div>{adSet.name}</div>
@@ -644,14 +503,7 @@ export default function CampaignDetailPage() {
                           const adCtr = ad.impressions > 0 ? (ad.clicks / ad.impressions) * 100 : 0;
 
                           return (
-                            <TableRow
-                              key={ad.id}
-                              className={
-                                ad.spend === 0 && ad.impressions === 0 && ad.clicks === 0
-                                  ? 'opacity-60'
-                                  : ''
-                              }
-                            >
+                            <TableRow key={ad.id}>
                               <TableCell className="font-medium">{ad.name}</TableCell>
                               <TableCell>
                                 {ad.creativeUrl ? (
@@ -839,153 +691,6 @@ export default function CampaignDetailPage() {
             </Card>
           </TabsContent>
 
-          {/* Comparisons Tab */}
-          <TabsContent value="comparisons" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Ad A/B Comparison</CardTitle>
-                <CardDescription>
-                  Executive-friendly side-by-side performance with normalized metrics
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs text-muted-foreground">Ad A</Label>
-                    <Select value={compareAId ?? ''} onValueChange={setCompareAId}>
-                      <SelectTrigger className="w-[260px]">
-                        <SelectValue placeholder="Select Ad A" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {allAds.map((ad) => (
-                          <SelectItem key={ad.id} value={ad.id}>
-                            {ad.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs text-muted-foreground">Ad B</Label>
-                    <Select value={compareBId ?? ''} onValueChange={setCompareBId}>
-                      <SelectTrigger className="w-[260px]">
-                        <SelectValue placeholder="Select Ad B" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {allAds.map((ad) => (
-                          <SelectItem key={ad.id} value={ad.id}>
-                            {ad.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {(() => {
-                  const adA = allAds.find((ad) => ad.id === compareAId);
-                  const adB = allAds.find((ad) => ad.id === compareBId);
-                  if (!adA || !adB) {
-                    return (
-                      <p className="text-sm text-muted-foreground">
-                        Select two ads to compare.
-                      </p>
-                    );
-                  }
-
-                  const metricsA = getAdMetrics(adA);
-                  const metricsB = getAdMetrics(adB);
-                  const delta = {
-                    spend: adA.spend - adB.spend,
-                    ctr: metricsA.ctrValue - metricsB.ctrValue,
-                    cpc: (adA.cpc || 0) - (adB.cpc || 0),
-                    resultsPer100: metricsA.resultsPer100Value - metricsB.resultsPer100Value,
-                    clicksPer1k: metricsA.clicksPer1kValue - metricsB.clicksPer1kValue,
-                  };
-
-                  const formatDelta = (value: number, suffix = '') =>
-                    `${value >= 0 ? '+' : ''}${value.toFixed(2)}${suffix}`;
-
-                  return (
-                    <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr]">
-                      {[adA, adB].map((ad, index) => {
-                        const metrics = index === 0 ? metricsA : metricsB;
-                        return (
-                          <Card key={ad.id} className="border border-slate-200">
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-sm">{index === 0 ? 'Ad A' : 'Ad B'}</CardTitle>
-                              <CardDescription className="line-clamp-2">{ad.name}</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                              <div className="flex items-center gap-3">
-                                <div className="h-16 w-16 rounded-md border bg-slate-50 overflow-hidden">
-                                  {ad.creativeUrl ? (
-                                    <img
-                                      src={ad.creativeUrl}
-                                      alt={ad.name}
-                                      className="h-full w-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
-                                      No preview
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {ad.adSetName}
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-2 gap-2 text-sm">
-                                <div>
-                                  <div className="text-xs text-muted-foreground">Spend</div>
-                                  <div className="font-semibold">{formatCurrency(ad.spend)}</div>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-muted-foreground">CPC</div>
-                                  <div className="font-semibold">{formatCurrency(ad.cpc || 0)}</div>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-muted-foreground">CTR</div>
-                                  <div className="font-semibold">{metrics.ctrValue.toFixed(2)}%</div>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-muted-foreground">Results/$100</div>
-                                  <div className="font-semibold">{metrics.resultsPer100Value.toFixed(2)}</div>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-muted-foreground">Clicks/1k</div>
-                                  <div className="font-semibold">{metrics.clicksPer1kValue.toFixed(2)}</div>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-muted-foreground">Reach/$100</div>
-                                  <div className="font-semibold">{metrics.reachPer100Value.toFixed(0)}</div>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-
-                      <div className="flex items-center justify-center">
-                        <div className="rounded-lg border bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                          <div className="font-semibold mb-2">Delta (A - B)</div>
-                          <div className="space-y-1">
-                            <div>Spend: {formatDelta(delta.spend)}</div>
-                            <div>CPC: {formatDelta(delta.cpc)}</div>
-                            <div>CTR: {formatDelta(delta.ctr, '%')}</div>
-                            <div>Results/$100: {formatDelta(delta.resultsPer100)}</div>
-                            <div>Clicks/1k: {formatDelta(delta.clicksPer1k)}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           {/* Recommendations Tab */}
           <TabsContent value="recommendations" className="space-y-4">
             <Card>
@@ -1004,18 +709,16 @@ export default function CampaignDetailPage() {
                     <div className="flex items-start gap-3">
                       {getRecommendationIcon(rec.severity)}
                       <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-sm">{rec.claim}</h3>
-                          <Badge variant="outline">
-                            Confidence: {Math.round(rec.confidence * 100)}%
-                          </Badge>
-                        </div>
+                        <h3 className="font-semibold text-sm mb-2">{rec.summary}</h3>
                         <div className="space-y-2 text-sm">
                           <div>
-                            <strong>Metric proof:</strong> {rec.evidence}
+                            <strong>What Happened:</strong> {rec.whatHappened}
                           </div>
                           <div>
-                            <strong>Suggested action:</strong> {rec.suggestedAction}
+                            <strong>What to Change:</strong> {rec.whatToChange}
+                          </div>
+                          <div>
+                            <strong>What to Test:</strong> {rec.whatToTest}
                           </div>
                         </div>
                       </div>
@@ -1038,27 +741,6 @@ export default function CampaignDetailPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="new-note">Add a Note</Label>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Select
-                      value={newNoteType ?? 'STRATEGY'}
-                      onValueChange={(value) =>
-                        setNewNoteType(value as NoteType)
-                      }
-                    >
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Note type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="STRATEGY">{NOTE_TYPE_LABELS.STRATEGY}</SelectItem>
-                        <SelectItem value="CREATIVE">{NOTE_TYPE_LABELS.CREATIVE}</SelectItem>
-                        <SelectItem value="BUDGET_CHANGE">{NOTE_TYPE_LABELS.BUDGET_CHANGE}</SelectItem>
-                        <SelectItem value="EXTERNAL_FACTOR">{NOTE_TYPE_LABELS.EXTERNAL_FACTOR}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Type helps build a timeline of decisions.
-                    </p>
-                  </div>
                   <Textarea
                     id="new-note"
                     placeholder="Enter your notes or observations..."
@@ -1082,20 +764,14 @@ export default function CampaignDetailPage() {
                       No notes yet. Add your first note above.
                     </p>
                   ) : (
-                    <div className="space-y-3 max-h-[400px] overflow-y-auto border-l border-slate-200 pl-3">
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto">
                       {campaign.notes.map((note) => (
-                        <div key={note.id} className="relative pl-6">
-                          <span className="absolute left-2 top-2 h-2 w-2 rounded-full bg-slate-300" />
-                          <div className="bg-slate-50 p-3 rounded-lg border">
-                            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                              <Badge variant={getNoteTypeVariant(note.type)}>
-                                {getNoteTypeLabel(note.type)}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                {formatDate(note.createdAt)}
-                              </span>
-                            </div>
-                            <p className="text-sm">{note.content}</p>
+                        <div key={note.id} className="bg-slate-50 p-3 rounded-lg">
+                          <div className="flex justify-between items-start gap-2 mb-2">
+                            <p className="text-sm flex-1">{note.content}</p>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              {formatDate(note.createdAt)}
+                            </span>
                           </div>
                         </div>
                       ))}

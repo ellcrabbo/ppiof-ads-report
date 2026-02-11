@@ -11,7 +11,6 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import {
   BarChart3,
@@ -59,27 +58,11 @@ interface Campaign {
   };
 }
 
-interface ImportRunSummary {
-  id: string;
-  fileName: string;
-  platform: string;
-  rowCount: number;
-  createdAt: string;
-  rowsProcessed: number;
-  rowsDropped: number;
-  duplicatesMerged: number;
-  totalSpend: number;
-  totalImpressions: number;
-  totalClicks: number;
-  totalResults: number;
-}
-
 export default function DashboardPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [latestImport, setLatestImport] = useState<ImportRunSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -102,23 +85,20 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [summaryRes, campaignsRes, importRes] = await Promise.all([
+      const [summaryRes, campaignsRes] = await Promise.all([
         fetch('/api/dashboard'),
         fetch('/api/campaigns'),
-        fetch('/api/import-runs?limit=1'),
       ]);
 
-      if (!summaryRes.ok || !campaignsRes.ok || !importRes.ok) {
+      if (!summaryRes.ok || !campaignsRes.ok) {
         throw new Error('Failed to fetch data');
       }
 
       const summaryData = await summaryRes.json();
       const campaignsData = await campaignsRes.json();
-      const importData = await importRes.json();
 
       setSummary(summaryData.data.summary);
       setCampaigns(campaignsData.data);
-      setLatestImport(importData.data?.[0] ?? null);
     } catch (error) {
       console.error('Fetch error:', error);
       toast({
@@ -165,18 +145,6 @@ export default function DashboardPage() {
         title: 'Upload Successful',
         description: `Imported ${data.campaignsCreated} campaigns, ${data.adSetsCreated} ad sets, and ${data.adsCreated} ads.`,
       });
-
-      if (data.importSummary) {
-        const diff = data.importSummary.diffFromPrevious;
-        const diffText = diff
-          ? `Δ Spend ${formatCurrency(diff.spend)}, Δ Impr. ${formatNumber(diff.impressions)}, Δ Clicks ${formatNumber(diff.clicks)}.`
-          : 'No previous import to compare.';
-
-        toast({
-          title: 'Import Summary',
-          description: `Rows processed ${formatNumber(data.importSummary.rowsProcessed)} • Dropped ${formatNumber(data.importSummary.rowsDropped)} • Duplicates merged ${formatNumber(data.importSummary.duplicatesMerged)}. ${diffText}`,
-        });
-      }
 
       if (data.warnings && data.warnings.length > 0) {
         toast({
@@ -269,56 +237,16 @@ export default function DashboardPage() {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
     }).format(num);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <header className="bg-white border-b sticky top-0 z-10">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-primary rounded-lg p-2">
-                  <BarChart3 className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-slate-900">PPIOF Ads Report</h1>
-                  <p className="text-sm text-slate-600">Meta Ads Analytics</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-        <main className="container mx-auto px-4 py-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Card key={index}>
-                <CardHeader className="pb-2">
-                  <Skeleton className="h-4 w-24" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-8 w-28" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-3 w-48" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <Skeleton key={index} className="h-10 w-full" />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </main>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <BarChart3 className="h-12 w-12 animate-pulse mx-auto mb-4 text-primary" />
+          <p className="text-slate-600">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
@@ -444,37 +372,6 @@ export default function DashboardPage() {
           </Button>
         </div>
 
-        {latestImport && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Latest Import Summary</CardTitle>
-              <CardDescription>
-                {latestImport.fileName} • {new Date(latestImport.createdAt).toLocaleString()}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <div className="text-xs text-muted-foreground">Rows Processed</div>
-                  <div className="font-semibold">{formatNumber(latestImport.rowsProcessed)}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">Rows Dropped</div>
-                  <div className="font-semibold">{formatNumber(latestImport.rowsDropped)}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">Duplicates Merged</div>
-                  <div className="font-semibold">{formatNumber(latestImport.duplicatesMerged)}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">Total Spend</div>
-                  <div className="font-semibold">{formatCurrency(latestImport.totalSpend)}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Campaigns Table */}
         <Card>
           <CardHeader>
@@ -513,11 +410,7 @@ export default function DashboardPage() {
                     filteredCampaigns.map((campaign) => (
                       <TableRow
                         key={campaign.id}
-                        className={`cursor-pointer hover:bg-slate-50 ${
-                          campaign.spend === 0 && campaign.impressions === 0 && campaign.clicks === 0
-                            ? 'opacity-60'
-                            : ''
-                        }`}
+                        className="cursor-pointer hover:bg-slate-50"
                         onClick={() => router.push(`/campaign/${campaign.id}`)}
                       >
                         <TableCell className="font-medium">{campaign.name}</TableCell>
