@@ -280,6 +280,14 @@ export default function DashboardPage() {
     .slice(0, 6);
 
   const maxEfficiencyScore = Math.max(...efficiencyRows.map((row) => row.efficiencyScore), 1);
+  const totalFilteredSpend = filteredCampaigns.reduce((sum, campaign) => sum + campaign.spend, 0);
+  const topSpendCampaign = [...filteredCampaigns].sort((a, b) => b.spend - a.spend)[0];
+  const bestCtrCampaign = [...filteredCampaigns]
+    .filter((campaign) => campaign.impressions > 0)
+    .sort((a, b) => (b.clicks / b.impressions) - (a.clicks / a.impressions))[0];
+  const lowestCpcCampaign = [...filteredCampaigns]
+    .filter((campaign) => campaign.clicks > 0 && campaign.cpc !== null)
+    .sort((a, b) => (a.cpc || 0) - (b.cpc || 0))[0];
 
   const formatNumber = (num: number): string => {
     return new Intl.NumberFormat('en-US').format(Math.round(num));
@@ -517,57 +525,87 @@ export default function DashboardPage() {
                 Spend bars with CTR trend line so you can spot expensive but weak campaigns fast.
               </CardDescription>
             </CardHeader>
-            <CardContent className="h-[300px]">
-              {performanceMixData.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-                  No chart data available
+            <CardContent className="space-y-4">
+              <div className="h-[250px]">
+                {performanceMixData.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+                    No chart data available
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={performanceMixData} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
+                      <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
+                      <XAxis
+                        dataKey="name"
+                        angle={-25}
+                        textAnchor="end"
+                        tick={{ fontSize: 11 }}
+                        height={55}
+                        interval={0}
+                      />
+                      <YAxis
+                        yAxisId="left"
+                        tickFormatter={(value) => `$${Math.round(value).toLocaleString()}`}
+                        tick={{ fontSize: 11 }}
+                      />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        tickFormatter={(value) => `${value}%`}
+                        tick={{ fontSize: 11 }}
+                      />
+                      <RechartsTooltip
+                        formatter={(value: number, key: string) => {
+                          if (key === 'spend') return [formatCurrency(Number(value)), 'Spend'];
+                          if (key === 'ctr') return [`${Number(value).toFixed(2)}%`, 'CTR'];
+                          return [String(value), key];
+                        }}
+                        contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 12 }} />
+                      <Bar yAxisId="left" dataKey="spend" name="Spend" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="ctr"
+                        name="CTR %"
+                        stroke="#0ea5e9"
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                        activeDot={{ r: 4 }}
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="rounded-md border bg-muted/20 p-3">
+                  <p className="text-xs text-muted-foreground">Top Spend Campaign</p>
+                  <p className="text-sm font-medium truncate mt-1">{topSpendCampaign?.name || 'N/A'}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {topSpendCampaign
+                      ? `${formatCurrency(topSpendCampaign.spend)} • ${((topSpendCampaign.spend / Math.max(totalFilteredSpend, 1)) * 100).toFixed(1)}% of spend`
+                      : 'No data'}
+                  </p>
                 </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={performanceMixData} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
-                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
-                    <XAxis
-                      dataKey="name"
-                      angle={-25}
-                      textAnchor="end"
-                      tick={{ fontSize: 11 }}
-                      height={55}
-                      interval={0}
-                    />
-                    <YAxis
-                      yAxisId="left"
-                      tickFormatter={(value) => `$${Math.round(value).toLocaleString()}`}
-                      tick={{ fontSize: 11 }}
-                    />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
-                      tickFormatter={(value) => `${value}%`}
-                      tick={{ fontSize: 11 }}
-                    />
-                    <RechartsTooltip
-                      formatter={(value: number, key: string) => {
-                        if (key === 'spend') return [formatCurrency(Number(value)), 'Spend'];
-                        if (key === 'ctr') return [`${Number(value).toFixed(2)}%`, 'CTR'];
-                        return [String(value), key];
-                      }}
-                      contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)' }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Bar yAxisId="left" dataKey="spend" name="Spend" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                    <Line
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="ctr"
-                      name="CTR %"
-                      stroke="#0ea5e9"
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
-                      activeDot={{ r: 4 }}
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              )}
+                <div className="rounded-md border bg-muted/20 p-3">
+                  <p className="text-xs text-muted-foreground">Best CTR</p>
+                  <p className="text-sm font-medium truncate mt-1">{bestCtrCampaign?.name || 'N/A'}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {bestCtrCampaign
+                      ? `${((bestCtrCampaign.clicks / Math.max(bestCtrCampaign.impressions, 1)) * 100).toFixed(2)}% CTR`
+                      : 'No data'}
+                  </p>
+                </div>
+                <div className="rounded-md border bg-muted/20 p-3">
+                  <p className="text-xs text-muted-foreground">Lowest CPC</p>
+                  <p className="text-sm font-medium truncate mt-1">{lowestCpcCampaign?.name || 'N/A'}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {lowestCpcCampaign ? formatCurrency(lowestCpcCampaign.cpc || 0) : 'No data'}
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
