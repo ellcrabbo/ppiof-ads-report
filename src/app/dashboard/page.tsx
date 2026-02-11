@@ -509,8 +509,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Visual Insights */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
-          <Card className="xl:col-span-2">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6 items-start">
+          <Card className="xl:col-span-2 self-start">
             <CardHeader>
               <CardTitle>Spend vs CTR</CardTitle>
               <CardDescription>
