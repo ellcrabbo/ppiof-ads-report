@@ -117,6 +117,8 @@ export default function DashboardPage() {
   const [chatOpen, setChatOpen] = useState(true);
   const [hasAutoCollapsed, setHasAutoCollapsed] = useState(false);
   const [creativeScrollPaused, setCreativeScrollPaused] = useState(false);
+  const [failedVideoPreviewIds, setFailedVideoPreviewIds] = useState<Record<string, boolean>>({});
+  const [failedImagePreviewIds, setFailedImagePreviewIds] = useState<Record<string, boolean>>({});
   const creativeStripRef = useRef<HTMLDivElement | null>(null);
 
   // Filter states
@@ -662,6 +664,14 @@ export default function DashboardPage() {
                 <div className="flex gap-3 min-w-max">
                   {autoScrollCreatives.map((creative, index) => {
                     const ctr = creative.impressions > 0 ? (creative.clicks / creative.impressions) * 100 : 0;
+                    const videoFailed = Boolean(failedVideoPreviewIds[creative.id]);
+                    const imageFailed = Boolean(failedImagePreviewIds[creative.id]);
+                    const showVideo = Boolean(
+                      creative.creativeUrl &&
+                      creative.creativeType === 'VIDEO' &&
+                      !videoFailed
+                    );
+                    const showImage = Boolean(creative.creativeUrl && !imageFailed && !showVideo);
                     return (
                       <div
                         key={`${creative.id}-${index}`}
@@ -669,11 +679,27 @@ export default function DashboardPage() {
                         onClick={() => router.push(`/campaign/${creative.campaignId}`)}
                       >
                         <div className="relative aspect-video bg-muted">
-                          {creative.creativeUrl ? (
+                          {showVideo ? (
+                            <video
+                              src={creative.creativeUrl || undefined}
+                              className="h-full w-full object-cover"
+                              muted
+                              loop
+                              autoPlay
+                              playsInline
+                              preload="metadata"
+                              onError={() =>
+                                setFailedVideoPreviewIds((prev) => ({ ...prev, [creative.id]: true }))
+                              }
+                            />
+                          ) : showImage ? (
                             <img
-                              src={creative.creativeUrl}
+                              src={creative.creativeUrl || undefined}
                               alt={creative.adName}
                               className="h-full w-full object-cover"
+                              onError={() =>
+                                setFailedImagePreviewIds((prev) => ({ ...prev, [creative.id]: true }))
+                              }
                             />
                           ) : (
                             <div className="h-full w-full flex items-center justify-center">
