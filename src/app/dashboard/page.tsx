@@ -292,7 +292,7 @@ export default function DashboardPage() {
     return true;
   });
 
-  const creativeHighlights = filteredCampaigns
+  const creativeAds = filteredCampaigns
     .flatMap((campaign) =>
       (campaign.AdSet || []).flatMap((adSet) =>
         (adSet.Ad || []).map((ad) => ({
@@ -311,8 +311,9 @@ export default function DashboardPage() {
       )
     )
     .filter((ad) => Boolean(ad.creativeUrl))
-    .sort((a, b) => b.spend - a.spend)
-    .slice(0, 16);
+    .sort((a, b) => b.spend - a.spend);
+
+  const creativeHighlights = creativeAds.slice(0, 16);
 
   const autoScrollCreatives =
     creativeHighlights.length > 1
@@ -382,6 +383,10 @@ export default function DashboardPage() {
 
   const maxEfficiencyScore = Math.max(...efficiencyRows.map((row) => row.efficiencyScore), 1);
   const totalFilteredSpend = filteredCampaigns.reduce((sum, campaign) => sum + campaign.spend, 0);
+  const activeCampaignCount = filteredCampaigns.filter(
+    (campaign) => (campaign.status || '').toLowerCase() === 'active'
+  ).length;
+  const creativeCampaignCoverage = new Set(creativeAds.map((ad) => ad.campaignId)).size;
   const topSpendCampaign = [...filteredCampaigns].sort((a, b) => b.spend - a.spend)[0];
   const bestCtrCampaign = [...filteredCampaigns]
     .filter((campaign) => campaign.impressions > 0)
@@ -474,7 +479,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
       <header className="bg-background border-b sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-primary rounded-lg p-2">
@@ -501,7 +506,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container max-w-7xl mx-auto px-4 py-6">
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card>
@@ -594,7 +599,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-wrap gap-4 mb-6">
+        <div className="flex flex-wrap gap-3 mb-4">
           <div className="flex-1 min-w-[200px]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -623,37 +628,60 @@ export default function DashboardPage() {
           </Button>
         </div>
 
+        <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <Card>
+            <CardContent className="py-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <Badge variant="secondary">
+                  {filteredCampaigns.length} {t('dashboard.campaigns.title', 'Campaigns')}
+                </Badge>
+                <Badge variant="outline">
+                  {activeCampaignCount} {t('dashboard.active', 'Active')}
+                </Badge>
+                <Badge variant="outline">
+                  {creativeAds.length} {t('dashboard.creatives', 'Creatives')}
+                </Badge>
+                <Badge variant="outline">
+                  {creativeCampaignCoverage} {t('dashboard.coveredCampaigns', 'Covered Campaigns')}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="py-3">
+              <p className="text-xs text-muted-foreground mb-2">
+                {t('dashboard.glossary.title', 'Marketing Glossary')}
+              </p>
+              <div className="max-h-[68px] overflow-y-auto pr-1">
+                <MarketingGlossary
+                  terms={[
+                    'campaign',
+                    'adSet',
+                    'creative',
+                    'spend',
+                    'impressions',
+                    'reach',
+                    'clicks',
+                    'results',
+                    'ctr',
+                    'cpc',
+                    'cpm',
+                    'opportunityScore',
+                  ]}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card className="mb-6">
           <CardHeader className="pb-3">
-            <CardTitle>{t('dashboard.glossary.title', 'Marketing Glossary')}</CardTitle>
-            <CardDescription>
-              {t('dashboard.glossary.desc', 'Hover any term to see a plain-English definition.')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <MarketingGlossary
-              terms={[
-                'campaign',
-                'adSet',
-                'creative',
-                'spend',
-                'impressions',
-                'reach',
-                'clicks',
-                'results',
-                'ctr',
-                'cpc',
-                'cpm',
-                'opportunityScore',
-              ]}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Creative Highlights */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>{t('dashboard.creativeHighlights.title', 'Creative Highlights')}</CardTitle>
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle>{t('dashboard.creativeHighlights.title', 'Creative Highlights')}</CardTitle>
+              <Badge variant="outline" className="text-[11px]">
+                {t('dashboard.autoScroll', 'Auto-scroll')}
+              </Badge>
+            </div>
             <CardDescription>
               {t(
                 'dashboard.creativeHighlights.desc',
@@ -824,8 +852,8 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="rounded-md border bg-muted/20 p-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="rounded-md border bg-muted/20 p-3">
                   <p className="text-xs text-muted-foreground">{t('dashboard.visualInsights.topSpendCampaign', 'Top Spend Campaign')}</p>
                   <p className="text-sm font-medium truncate mt-1">{topSpendCampaign?.name || t('common.na', 'N/A')}</p>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -932,7 +960,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="rounded-md border max-h-[600px] overflow-y-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 z-[1] bg-background">
                   <TableRow>
                     <TableHead>{t('dashboard.table.campaignName', 'Campaign Name')}</TableHead>
                     <TableHead>{t('dashboard.table.platform', 'Platform')}</TableHead>
@@ -978,7 +1006,7 @@ export default function DashboardPage() {
                     filteredCampaigns.map((campaign) => (
                       <TableRow
                         key={campaign.id}
-                        className="cursor-pointer hover:bg-muted/40"
+                        className="cursor-pointer hover:bg-muted/40 text-sm"
                         onClick={() => router.push(`/campaign/${campaign.id}`)}
                       >
                         <TableCell className="font-medium">{campaign.name}</TableCell>
@@ -1004,16 +1032,16 @@ export default function DashboardPage() {
                             <span className="text-muted-foreground">{t('common.na', 'N/A')}</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right tabular-nums">
                           {formatCurrency(campaign.spend)}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right tabular-nums">
                           {formatNumber(campaign.impressions)}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right tabular-nums">
                           {formatNumber(campaign.clicks)}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right tabular-nums">
                           {formatCurrency(campaign.cpc || 0)}
                         </TableCell>
                       </TableRow>
@@ -1029,7 +1057,7 @@ export default function DashboardPage() {
 
       {/* Footer */}
       <footer className="mt-auto bg-background border-t">
-        <div className="container mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
+        <div className="container max-w-7xl mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
           {t('dashboard.footer', 'PPIOF Ads Report ©')} {new Date().getFullYear()}
         </div>
       </footer>

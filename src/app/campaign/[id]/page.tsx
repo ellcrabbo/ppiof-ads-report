@@ -259,6 +259,25 @@ export default function CampaignDetailPage() {
     });
   };
 
+  const hasCreativeChanges = (ad: CampaignDetail['adSets'][number]['ads'][number]) => {
+    const edit = getCreativeEdit(ad);
+    const nextUrl = edit.creativeUrl.trim();
+    const currentUrl = ad.creativeUrl || '';
+    const nextType = edit.creativeType || null;
+    const currentType = ad.creativeType || null;
+    const nextCarousel =
+      nextType === 'CAROUSEL' && edit.creativeCarouselTotal
+        ? Number(edit.creativeCarouselTotal)
+        : null;
+    const currentCarousel = ad.creativeCarouselTotal || null;
+
+    return (
+      nextUrl !== currentUrl ||
+      nextType !== currentType ||
+      nextCarousel !== currentCarousel
+    );
+  };
+
   const unlockCreativeUrl = (adId: string) => {
     setCreativeUrlUnlocked((prev) => ({ ...prev, [adId]: true }));
   };
@@ -366,7 +385,7 @@ export default function CampaignDetailPage() {
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Header */}
       <header className="bg-background border-b sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard')}>
@@ -388,7 +407,7 @@ export default function CampaignDetailPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 flex-1">
+      <main className="container max-w-7xl mx-auto px-4 py-6 flex-1">
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card>
@@ -498,7 +517,7 @@ export default function CampaignDetailPage() {
         </Card>
 
         <Tabs defaultValue="creatives" className="space-y-4">
-          <TabsList>
+          <TabsList className="w-full justify-start overflow-x-auto">
             <TabsTrigger value="adsets">{t('campaign.tabs.adsets', 'Ad Sets')}</TabsTrigger>
             <TabsTrigger value="ads">{t('campaign.tabs.ads', 'Top Ads')}</TabsTrigger>
             <TabsTrigger value="creatives">{t('campaign.tabs.creatives', 'Creatives')}</TabsTrigger>
@@ -518,7 +537,7 @@ export default function CampaignDetailPage() {
               <CardContent>
                 <div className="rounded-md border max-h-[500px] overflow-y-auto">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 z-[1] bg-background">
                       <TableRow>
                         <TableHead>Ad Set Name</TableHead>
                         <TableHead className="text-right">
@@ -552,21 +571,21 @@ export default function CampaignDetailPage() {
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right tabular-nums">
                               {formatCurrency(adSet.spend)}
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right tabular-nums">
                               {formatNumber(adSet.impressions)}
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right tabular-nums">
                               {formatNumber(adSet.clicks)}
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right tabular-nums">
                               <Badge variant={adSetCtr < 0.5 ? 'destructive' : 'secondary'}>
                                 {adSetCtr.toFixed(2)}%
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right tabular-nums">
                               {formatCurrency(adSet.cpc || 0)}
                             </TableCell>
                           </TableRow>
@@ -591,7 +610,7 @@ export default function CampaignDetailPage() {
               <CardContent>
                 <div className="rounded-md border max-h-[500px] overflow-y-auto">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 z-[1] bg-background">
                       <TableRow>
                         <TableHead>{t('campaign.table.adName', 'Ad Name')}</TableHead>
                         <TableHead>{t('campaign.table.creative', 'Creative')}</TableHead>
@@ -665,21 +684,21 @@ export default function CampaignDetailPage() {
                                   <span className="text-muted-foreground">{t('dashboard.creativeHighlights.noPreview', 'No creative')}</span>
                                 )}
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="text-right tabular-nums">
                                 {formatCurrency(ad.spend)}
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="text-right tabular-nums">
                                 {formatNumber(ad.impressions)}
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="text-right tabular-nums">
                                 {formatNumber(ad.clicks)}
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="text-right tabular-nums">
                                 <Badge variant={adCtr < 0.5 ? 'destructive' : 'default'}>
                                   {adCtr.toFixed(2)}%
                                 </Badge>
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="text-right tabular-nums">
                                 {formatCurrency(ad.cpc || 0)}
                               </TableCell>
                             </TableRow>
@@ -742,12 +761,12 @@ export default function CampaignDetailPage() {
                               </span>
                             </div>
                             <div className="p-3 space-y-1.5">
-                              <p className="text-sm font-semibold leading-tight max-h-10 overflow-hidden">{ad.name}</p>
+                              <p className="text-sm font-semibold leading-tight line-clamp-2">{ad.name}</p>
                               <p className="text-xs text-muted-foreground truncate">
-                                Ad Set: {ad.adSetName}
+                                {t('campaign.table.adSet', 'Ad Set')}: {ad.adSetName}
                               </p>
                               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <span>Spend {formatCurrency(ad.spend)}</span>
+                                <span>{MARKETING_GLOSSARY.spend.term[language]} {formatCurrency(ad.spend)}</span>
                                 <span>{MARKETING_GLOSSARY.clicks.term[language]} {formatNumber(ad.clicks)}</span>
                               </div>
                               <a
@@ -777,7 +796,7 @@ export default function CampaignDetailPage() {
 
                 <div className="rounded-md border max-h-[600px] overflow-y-auto">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 z-[1] bg-background">
                       <TableRow>
                         <TableHead>{t('campaign.table.creative', 'Creative')}</TableHead>
                         <TableHead>{t('campaign.table.ad', 'Ad')}</TableHead>
@@ -855,7 +874,7 @@ export default function CampaignDetailPage() {
                               </TableCell>
                               <TableCell>
                                 {isUrlLocked ? (
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     <Badge variant="secondary">
                                       <Lock className="mr-1 h-3 w-3" />
                                       {t('campaign.creatives.urlSaved', 'URL saved')}
@@ -881,7 +900,7 @@ export default function CampaignDetailPage() {
                                     )}
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     <Input
                                       value={edit.creativeUrl}
                                       onChange={(e) =>
@@ -923,7 +942,12 @@ export default function CampaignDetailPage() {
                                 </div>
                               </TableCell>
                               <TableCell className="text-right">
-                                <Button size="sm" variant="outline" onClick={() => handleSaveCreative(ad.id)}>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleSaveCreative(ad.id)}
+                                  disabled={!hasCreativeChanges(ad)}
+                                >
                                   <Save className="h-4 w-4 mr-2" />
                                   {creativeUrlUnlocked[ad.id]
                                     ? t('action.saveAndLock', 'Save & Lock')
@@ -1036,7 +1060,7 @@ export default function CampaignDetailPage() {
 
       {/* Footer */}
       <footer className="mt-auto bg-background border-t">
-        <div className="container mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
+        <div className="container max-w-7xl mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
           PPIOF Ads Report © {new Date().getFullYear()}
         </div>
       </footer>
