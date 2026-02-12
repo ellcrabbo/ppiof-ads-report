@@ -123,6 +123,7 @@ export default function DashboardPage() {
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
+  const [platformFilter, setPlatformFilter] = useState<'all' | 'facebook' | 'instagram'>('all');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -130,7 +131,7 @@ export default function DashboardPage() {
     } else if (status === 'authenticated') {
       fetchData();
     }
-  }, [status, router]);
+  }, [status, router, platformFilter]);
 
   useEffect(() => {
     if (loading || hasAutoCollapsed) return;
@@ -159,9 +160,15 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const searchParams = new URLSearchParams();
+      if (platformFilter !== 'all') {
+        searchParams.set('platform', platformFilter);
+      }
+      const query = searchParams.toString();
+      const suffix = query ? `?${query}` : '';
       const [summaryRes, campaignsRes] = await Promise.all([
-        fetch('/api/dashboard'),
-        fetch('/api/campaigns'),
+        fetch(`/api/dashboard${suffix}`),
+        fetch(`/api/campaigns${suffix}`),
       ]);
 
       if (!summaryRes.ok || !campaignsRes.ok) {
@@ -614,6 +621,29 @@ export default function DashboardPage() {
                 className="pl-10"
               />
             </div>
+          </div>
+          <div className="flex items-center gap-1 rounded-md border bg-card p-1">
+            <Button
+              size="sm"
+              variant={platformFilter === 'all' ? 'secondary' : 'ghost'}
+              onClick={() => setPlatformFilter('all')}
+            >
+              {t('dashboard.platform.all', 'All')}
+            </Button>
+            <Button
+              size="sm"
+              variant={platformFilter === 'facebook' ? 'secondary' : 'ghost'}
+              onClick={() => setPlatformFilter('facebook')}
+            >
+              {t('dashboard.platform.facebook', 'Facebook')}
+            </Button>
+            <Button
+              size="sm"
+              variant={platformFilter === 'instagram' ? 'secondary' : 'ghost'}
+              onClick={() => setPlatformFilter('instagram')}
+            >
+              {t('dashboard.platform.instagram', 'Instagram')}
+            </Button>
           </div>
           <Button onClick={() => document.getElementById('file-upload')?.click()} disabled={uploading}>
             <Upload className="h-4 w-4 mr-2" />

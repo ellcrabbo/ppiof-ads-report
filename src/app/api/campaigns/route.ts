@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { buildCampaignPlatformFilter } from '@/lib/platform-filter';
 import { z } from 'zod';
 
 export const runtime = "nodejs";
@@ -38,8 +39,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (platform) {
-      where.platform = platform;
+    const platformWhere = buildCampaignPlatformFilter(platform);
+    if (platformWhere) {
+      Object.assign(where, platformWhere);
     }
 
     if (objective) {
