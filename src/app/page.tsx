@@ -54,7 +54,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/60 dark:from-background dark:to-muted/20 flex items-center justify-center p-4 relative">
+    <div className="min-h-screen premium-bg flex items-center justify-center p-4 relative">
       <div className="absolute right-4 top-4">
         <div className="flex items-center gap-2">
           <LanguageToggle />
@@ -72,7 +72,7 @@ export default function LoginPage() {
           <p className="text-muted-foreground mt-2">{t('login.subtitle', 'Meta Ads Analytics Dashboard')}</p>
         </div>
 
-        <Card>
+        <Card className="premium-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
@@ -104,7 +104,7 @@ export default function LoginPage() {
         </Card>
 
         <div className="mt-8 grid grid-cols-1 gap-4">
-          <div className="flex items-center gap-3 p-4 bg-card rounded-lg border shadow-sm">
+          <div className="flex items-center gap-3 p-4 bg-card/85 rounded-lg border border-border/80 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.6)] backdrop-blur-sm">
             <div className="bg-blue-100 p-2 rounded">
               <Upload className="h-5 w-5 text-blue-600" />
             </div>
@@ -114,7 +114,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 bg-card rounded-lg border shadow-sm">
+          <div className="flex items-center gap-3 p-4 bg-card/85 rounded-lg border border-border/80 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.6)] backdrop-blur-sm">
             <div className="bg-green-100 p-2 rounded">
               <TrendingUp className="h-5 w-5 text-green-600" />
             </div>
@@ -124,7 +124,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 bg-card rounded-lg border shadow-sm">
+          <div className="flex items-center gap-3 p-4 bg-card/85 rounded-lg border border-border/80 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.6)] backdrop-blur-sm">
             <div className="bg-purple-100 p-2 rounded">
               <FileText className="h-5 w-5 text-purple-600" />
             </div>

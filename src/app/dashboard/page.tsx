@@ -472,9 +472,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen premium-bg text-foreground">
       {/* Header */}
-      <header className="bg-background border-b sticky top-0 z-10">
+      <header className="premium-header sticky top-0 z-10">
         <div className="container max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -502,10 +502,10 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="container max-w-7xl mx-auto px-4 py-6">
+      <main className="container max-w-7xl mx-auto px-4 py-7">
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 fade-up">
+          <Card className="premium-card premium-kpi">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 <MarketingTerm
@@ -522,7 +522,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="premium-card premium-kpi">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 <MarketingTerm
@@ -539,7 +539,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="premium-card premium-kpi">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 <MarketingTerm
@@ -566,7 +566,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="premium-card premium-kpi">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 <MarketingTerm
@@ -595,7 +595,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-wrap gap-3 mb-4">
+        <div className="flex flex-wrap gap-3 mb-4 fade-up">
           <div className="flex-1 min-w-[200px]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -624,10 +624,10 @@ export default function DashboardPage() {
           </Button>
         </div>
 
-        <Card className="mb-6">
+        <Card className="mb-6 premium-card fade-up">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-2">
-              <CardTitle>{t('dashboard.creativeHighlights.title', 'Creative Highlights')}</CardTitle>
+              <CardTitle className="premium-section-title">{t('dashboard.creativeHighlights.title', 'Creative Highlights')}</CardTitle>
               <Badge variant="outline" className="text-[11px]">
                 {t('dashboard.autoScroll', 'Auto-scroll')}
               </Badge>
@@ -725,8 +725,8 @@ export default function DashboardPage() {
         </Card>
 
         {/* Visual Insights */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6 items-start">
-          <Card className="xl:col-span-2 self-start h-fit">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6 items-start fade-up">
+          <Card className="xl:col-span-2 self-start h-fit premium-card">
             <CardHeader>
               <CardTitle>
                 <span className="flex flex-wrap items-center gap-2">
@@ -853,9 +853,9 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="self-start h-fit">
+          <Card className="self-start h-fit premium-card">
             <CardHeader>
-              <CardTitle>{t('dashboard.efficiency.title', 'Efficiency Snapshot')}</CardTitle>
+              <CardTitle className="premium-section-title">{t('dashboard.efficiency.title', 'Efficiency Snapshot')}</CardTitle>
               <CardDescription>
                 Ranked by{' '}
                 <MarketingTerm
@@ -921,9 +921,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Campaigns Table */}
-        <Card>
+        <Card className="premium-card fade-up">
           <CardHeader>
-            <CardTitle>{t('dashboard.campaigns.title', 'Campaigns')}</CardTitle>
+            <CardTitle className="premium-section-title">{t('dashboard.campaigns.title', 'Campaigns')}</CardTitle>
             <CardDescription>
               {filteredCampaigns.length} {t('dashboard.campaigns.found', 'campaigns found')}
             </CardDescription>
@@ -1027,7 +1027,7 @@ export default function DashboardPage() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto bg-background border-t">
+      <footer className="mt-auto premium-header border-t">
         <div className="container max-w-7xl mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
           <div>{t('dashboard.footer', 'ADC Ads Reporting ©')} {new Date().getFullYear()}</div>
           <div className="text-xs mt-1">{t('footer.madeIn', 'Made in Cambodia · EJC Digital')}</div>
@@ -1036,7 +1036,7 @@ export default function DashboardPage() {
 
       <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
         {chatOpen && (
-          <Card className="w-[340px] shadow-xl">
+          <Card className="w-[340px] premium-card shadow-2xl">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-2">
                 <div>

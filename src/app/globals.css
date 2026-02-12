@@ -120,3 +120,43 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .premium-bg {
+    background-image:
+      radial-gradient(1200px 500px at 15% -10%, color-mix(in oklab, var(--color-primary) 16%, transparent), transparent 60%),
+      radial-gradient(1000px 420px at 90% -20%, color-mix(in oklab, var(--color-chart-2) 14%, transparent), transparent 62%);
+    background-attachment: fixed;
+  }
+
+  .premium-header {
+    @apply bg-background/85 backdrop-blur-md border-b;
+  }
+
+  .premium-card {
+    @apply border border-border/80 bg-card/85 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.5)] backdrop-blur-sm;
+  }
+
+  .premium-kpi {
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-[0_16px_34px_-24px_rgba(37,99,235,0.5)];
+  }
+
+  .premium-section-title {
+    @apply tracking-tight;
+  }
+
+  .fade-up {
+    animation: fade-up 380ms ease-out both;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

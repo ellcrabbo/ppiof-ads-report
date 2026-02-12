@@ -382,9 +382,9 @@ export default function CampaignDetailPage() {
     .sort((a, b) => b.spend - a.spend);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="min-h-screen premium-bg text-foreground flex flex-col">
       {/* Header */}
-      <header className="bg-background border-b sticky top-0 z-10">
+      <header className="premium-header sticky top-0 z-10">
         <div className="container max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -407,10 +407,10 @@ export default function CampaignDetailPage() {
         </div>
       </header>
 
-      <main className="container max-w-7xl mx-auto px-4 py-6 flex-1">
+      <main className="container max-w-7xl mx-auto px-4 py-7 flex-1">
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Card>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 fade-up">
+          <Card className="premium-card premium-kpi">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 <MarketingTerm
@@ -425,7 +425,7 @@ export default function CampaignDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="premium-card premium-kpi">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 <MarketingTerm
@@ -440,7 +440,7 @@ export default function CampaignDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="premium-card premium-kpi">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 <MarketingTerm
@@ -463,7 +463,7 @@ export default function CampaignDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="premium-card premium-kpi">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 <MarketingTerm
@@ -487,9 +487,9 @@ export default function CampaignDetailPage() {
           </Card>
         </div>
 
-        <Card className="mb-6">
+        <Card className="mb-6 premium-card fade-up">
           <CardHeader className="pb-3">
-            <CardTitle>{t('dashboard.glossary.title', 'Marketing Glossary')}</CardTitle>
+            <CardTitle className="premium-section-title">{t('dashboard.glossary.title', 'Marketing Glossary')}</CardTitle>
             <CardDescription>
               {t(
                 'campaign.glossary.desc',
@@ -516,7 +516,7 @@ export default function CampaignDetailPage() {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="creatives" className="space-y-4">
+        <Tabs defaultValue="creatives" className="space-y-4 fade-up">
           <TabsList className="w-full justify-start overflow-x-auto">
             <TabsTrigger value="adsets">{t('campaign.tabs.adsets', 'Ad Sets')}</TabsTrigger>
             <TabsTrigger value="ads">{t('campaign.tabs.ads', 'Top Ads')}</TabsTrigger>
@@ -527,9 +527,9 @@ export default function CampaignDetailPage() {
 
           {/* Ad Sets Tab */}
           <TabsContent value="adsets" className="space-y-4">
-            <Card>
+            <Card className="premium-card">
               <CardHeader>
-                <CardTitle>{t('campaign.adsets.title', 'Ad Sets')}</CardTitle>
+                <CardTitle className="premium-section-title">{t('campaign.adsets.title', 'Ad Sets')}</CardTitle>
                 <CardDescription>
                   {campaign.adSets.length} {t('campaign.adsets.count', 'ad sets')}
                 </CardDescription>
@@ -600,9 +600,9 @@ export default function CampaignDetailPage() {
 
           {/* Top Ads Tab */}
           <TabsContent value="ads" className="space-y-4">
-            <Card>
+            <Card className="premium-card">
               <CardHeader>
-                <CardTitle>{t('campaign.ads.title', 'Top Performing Ads')}</CardTitle>
+                <CardTitle className="premium-section-title">{t('campaign.ads.title', 'Top Performing Ads')}</CardTitle>
                 <CardDescription>
                   {t('campaign.ads.desc', 'Top 10 ads by click-through rate')}
                 </CardDescription>
@@ -714,9 +714,9 @@ export default function CampaignDetailPage() {
 
           {/* Creatives Tab */}
           <TabsContent value="creatives" className="space-y-4">
-            <Card>
+            <Card className="premium-card">
               <CardHeader>
-                <CardTitle>{t('campaign.creatives.title', 'Ad Creatives')}</CardTitle>
+                <CardTitle className="premium-section-title">{t('campaign.creatives.title', 'Ad Creatives')}</CardTitle>
                 <CardDescription>
                   {t('campaign.creatives.desc', 'Visual creative gallery plus editable metadata per ad')}
                 </CardDescription>
@@ -967,9 +967,9 @@ export default function CampaignDetailPage() {
 
           {/* Recommendations Tab */}
           <TabsContent value="recommendations" className="space-y-4">
-            <Card>
+            <Card className="premium-card">
               <CardHeader>
-                <CardTitle>{t('campaign.recommendations.title', 'Campaign Recommendations')}</CardTitle>
+                <CardTitle className="premium-section-title">{t('campaign.recommendations.title', 'Campaign Recommendations')}</CardTitle>
                 <CardDescription>
                   {t('campaign.recommendations.desc', 'Actionable insights based on campaign performance')}
                 </CardDescription>
@@ -1005,9 +1005,9 @@ export default function CampaignDetailPage() {
 
           {/* Notes Tab */}
           <TabsContent value="notes" className="space-y-4">
-            <Card>
+            <Card className="premium-card">
               <CardHeader>
-                <CardTitle>{t('campaign.notes.title', 'Campaign Notes')}</CardTitle>
+                <CardTitle className="premium-section-title">{t('campaign.notes.title', 'Campaign Notes')}</CardTitle>
                 <CardDescription>
                   {t('campaign.notes.desc', 'Add your observations and annotations')}
                 </CardDescription>
@@ -1059,7 +1059,7 @@ export default function CampaignDetailPage() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto bg-background border-t">
+      <footer className="mt-auto premium-header border-t">
         <div className="container max-w-7xl mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
           <div>{t('dashboard.footer', 'ADC Ads Reporting ©')} {new Date().getFullYear()}</div>
           <div className="text-xs mt-1">{t('footer.madeIn', 'Made in Cambodia · EJC Digital')}</div>
