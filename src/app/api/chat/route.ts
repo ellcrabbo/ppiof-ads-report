@@ -548,11 +548,37 @@ const extractResponseText = (payload: unknown) => {
   return parts.join('\n').trim();
 };
 
-const getAiAnswer = async (question: string, campaigns: CampaignMetric[], history: ChatMessage[]) => {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
+const getAiConfig = () => {
+  const gatewayKey = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_AI_GATEWAY_API_KEY;
+  if (gatewayKey) {
+    const baseUrl = (process.env.AI_GATEWAY_BASE_URL || 'https://ai-gateway.vercel.sh/v1').replace(/\/+$/, '');
+    return {
+      kind: 'gateway' as const,
+      apiKey: gatewayKey,
+      baseUrl,
+    };
+  }
 
-  const model = process.env.OPENAI_CHAT_MODEL || 'gpt-4.1-mini';
+  const openAiKey = process.env.OPENAI_API_KEY;
+  if (openAiKey) {
+    return {
+      kind: 'openai' as const,
+      apiKey: openAiKey,
+      baseUrl: 'https://api.openai.com/v1',
+    };
+  }
+
+  return null;
+};
+
+const getAiAnswer = async (question: string, campaigns: CampaignMetric[], history: ChatMessage[]) => {
+  const config = getAiConfig();
+  if (!config) return null;
+
+  const model =
+    process.env.OPENAI_CHAT_MODEL ||
+    process.env.AI_CHAT_MODEL ||
+    (config.kind === 'gateway' ? 'openai/gpt-4.1-mini' : 'gpt-4.1-mini');
   const context = buildPromptContext(campaigns);
   const recentHistory = history.slice(-8).map((item) => `${item.role}: ${item.content}`).join('\n');
 
@@ -578,10 +604,10 @@ const getAiAnswer = async (question: string, campaigns: CampaignMetric[], histor
   const timeoutId = setTimeout(() => controller.abort(), 15000);
 
   try {
-    const res = await fetch('https://api.openai.com/v1/responses', {
+    const res = await fetch(`${config.baseUrl}/responses`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${config.apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -603,7 +629,8 @@ const getAiAnswer = async (question: string, campaigns: CampaignMetric[], histor
     });
 
     if (!res.ok) {
-      throw new Error(`OpenAI request failed with status ${res.status}`);
+      const errorText = await res.text();
+      throw new Error(`AI request failed (${config.kind}) with status ${res.status}: ${errorText.slice(0, 300)}`);
     }
 
     const payload: unknown = await res.json();
