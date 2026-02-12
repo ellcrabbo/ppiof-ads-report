@@ -379,14 +379,10 @@ export default function DashboardPage() {
         : 0,
     }))
     .sort((a, b) => b.efficiencyScore - a.efficiencyScore)
-    .slice(0, 6);
+    .slice(0, 4);
 
   const maxEfficiencyScore = Math.max(...efficiencyRows.map((row) => row.efficiencyScore), 1);
   const totalFilteredSpend = filteredCampaigns.reduce((sum, campaign) => sum + campaign.spend, 0);
-  const activeCampaignCount = filteredCampaigns.filter(
-    (campaign) => (campaign.status || '').toLowerCase() === 'active'
-  ).length;
-  const creativeCampaignCoverage = new Set(creativeAds.map((ad) => ad.campaignId)).size;
   const topSpendCampaign = [...filteredCampaigns].sort((a, b) => b.spend - a.spend)[0];
   const bestCtrCampaign = [...filteredCampaigns]
     .filter((campaign) => campaign.impressions > 0)
@@ -628,50 +624,22 @@ export default function DashboardPage() {
           </Button>
         </div>
 
-        <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <Card>
-            <CardContent className="py-3">
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <Badge variant="secondary">
-                  {filteredCampaigns.length} {t('dashboard.campaigns.title', 'Campaigns')}
-                </Badge>
-                <Badge variant="outline">
-                  {activeCampaignCount} {t('dashboard.active', 'Active')}
-                </Badge>
-                <Badge variant="outline">
-                  {creativeAds.length} {t('dashboard.creatives', 'Creatives')}
-                </Badge>
-                <Badge variant="outline">
-                  {creativeCampaignCoverage} {t('dashboard.coveredCampaigns', 'Covered Campaigns')}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="py-3">
-              <p className="text-xs text-muted-foreground mb-2">
-                {t('dashboard.glossary.title', 'Marketing Glossary')}
-              </p>
-              <div className="max-h-[68px] overflow-y-auto pr-1">
-                <MarketingGlossary
-                  terms={[
-                    'campaign',
-                    'adSet',
-                    'creative',
-                    'spend',
-                    'impressions',
-                    'reach',
-                    'clicks',
-                    'results',
-                    'ctr',
-                    'cpc',
-                    'cpm',
-                    'opportunityScore',
-                  ]}
-                />
-              </div>
-            </CardContent>
-          </Card>
+        <div className="mb-4 rounded-md border bg-muted/20 px-3 py-2">
+          <MarketingGlossary
+            terms={[
+              'campaign',
+              'adSet',
+              'creative',
+              'spend',
+              'impressions',
+              'reach',
+              'clicks',
+              'results',
+              'ctr',
+              'cpc',
+              'cpm',
+            ]}
+          />
         </div>
 
         <Card className="mb-6">
@@ -907,7 +875,7 @@ export default function DashboardPage() {
                 ).
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="max-h-[420px] overflow-y-auto pr-1">
               <div className="space-y-3">
                 {efficiencyRows.length === 0 ? (
                   <p className="text-sm text-muted-foreground">{t('dashboard.efficiency.noData', 'No comparison data available.')}</p>
