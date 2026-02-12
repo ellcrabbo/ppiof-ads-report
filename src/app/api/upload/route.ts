@@ -17,6 +17,18 @@ function inferCreativeType(url?: string | null): 'IMAGE' | 'VIDEO' | null {
   return null;
 }
 
+function normalizePlatform(rawPlatform: string | undefined, fallback: 'meta' | 'facebook' | 'instagram') {
+  const source = (rawPlatform || fallback).toLowerCase().trim();
+  const hasInstagram = source.includes('instagram');
+  const hasFacebook = source.includes('facebook');
+
+  if (hasInstagram && !hasFacebook) return 'instagram';
+  if (hasFacebook && !hasInstagram) return 'facebook';
+  if (source.includes('meta') || (hasInstagram && hasFacebook)) return 'meta';
+
+  return fallback;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -90,7 +102,7 @@ export async function POST(request: NextRequest) {
       const resultType = row.resultType;
       const objective = row.objective;
       const status = row.status;
-      const platform = row.platform || validatedData.platform;
+      const platform = normalizePlatform(row.platform, validatedData.platform);
       const creativeUrl = row.creativeUrl;
       const creativeType = inferCreativeType(creativeUrl);
       const country = row.country?.trim() || '';

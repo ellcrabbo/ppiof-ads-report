@@ -79,6 +79,10 @@ export const META_COLUMN_MAPPING = {
   platform: [
     'Platform',
     'platform',
+    'Publisher platform',
+    'Publisher Platform',
+    'Publisher',
+    'Placement',
   ],
   creativeUrl: [
     'Ad creative URL',

@@ -26,28 +26,45 @@ function instagramSignal(): Prisma.CampaignWhereInput {
   };
 }
 
+function platformContains(value: string): Prisma.CampaignWhereInput {
+  return {
+    platform: {
+      contains: value,
+      mode: 'insensitive',
+    },
+  };
+}
+
+function metaOrUnknownPlatform(): Prisma.CampaignWhereInput {
+  return {
+    OR: [
+      platformContains('meta'),
+      { platform: null },
+    ],
+  };
+}
+
 export function buildCampaignPlatformFilter(platform?: string): Prisma.CampaignWhereInput | undefined {
   if (!platform) return undefined;
+  const normalized = platform.trim().toLowerCase();
 
-  if (platform === 'instagram') {
+  if (normalized === 'instagram') {
     return {
       OR: [
-        { platform: 'instagram' },
-        { AND: [{ platform: 'meta' }, instagramSignal()] },
-        { AND: [{ platform: null }, instagramSignal()] },
+        platformContains('instagram'),
+        { AND: [metaOrUnknownPlatform(), instagramSignal()] },
       ],
     };
   }
 
-  if (platform === 'facebook') {
+  if (normalized === 'facebook') {
     return {
       OR: [
-        { platform: 'facebook' },
-        { AND: [{ platform: 'meta' }, { NOT: instagramSignal() }] },
-        { AND: [{ platform: null }, { NOT: instagramSignal() }] },
+        platformContains('facebook'),
+        { AND: [metaOrUnknownPlatform(), { NOT: instagramSignal() }] },
       ],
     };
   }
 
-  return { platform };
+  return platformContains(normalized);
 }
