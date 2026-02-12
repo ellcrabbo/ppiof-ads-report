@@ -1061,7 +1061,8 @@ export default function CampaignDetailPage() {
       {/* Footer */}
       <footer className="mt-auto bg-background border-t">
         <div className="container max-w-7xl mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
-          PPIOF Ads Report © {new Date().getFullYear()}
+          <div>{t('dashboard.footer', 'ADC Ads Reporting ©')} {new Date().getFullYear()}</div>
+          <div className="text-xs mt-1">{t('footer.madeIn', 'Made in Cambodia · EJC Digital')}</div>
         </div>
       </footer>
     </div>

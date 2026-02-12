@@ -68,7 +68,7 @@ export default function LoginPage() {
               <BarChart3 className="h-8 w-8 text-primary-foreground" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold">{t('app.title', 'PPIOF Ads Report')}</h1>
+          <h1 className="text-3xl font-bold">{t('app.title', 'ADC Ads Reporting')}</h1>
           <p className="text-muted-foreground mt-2">{t('login.subtitle', 'Meta Ads Analytics Dashboard')}</p>
         </div>
 

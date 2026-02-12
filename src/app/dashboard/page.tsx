@@ -482,7 +482,7 @@ export default function DashboardPage() {
                 <BarChart3 className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">{t('app.title', 'PPIOF Ads Report')}</h1>
+                <h1 className="text-xl font-bold">{t('app.title', 'ADC Ads Reporting')}</h1>
                 <p className="text-sm text-muted-foreground">{t('app.subtitle', 'Meta Ads Analytics')}</p>
               </div>
             </div>
@@ -1029,7 +1029,8 @@ export default function DashboardPage() {
       {/* Footer */}
       <footer className="mt-auto bg-background border-t">
         <div className="container max-w-7xl mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
-          {t('dashboard.footer', 'PPIOF Ads Report ©')} {new Date().getFullYear()}
+          <div>{t('dashboard.footer', 'ADC Ads Reporting ©')} {new Date().getFullYear()}</div>
+          <div className="text-xs mt-1">{t('footer.madeIn', 'Made in Cambodia · EJC Digital')}</div>
         </div>
       </footer>
 

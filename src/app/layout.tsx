@@ -15,25 +15,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PPIOF Ads Report",
+  title: "ADC Ads Reporting",
   description: "Meta Ads analytics dashboard for campaign performance, creatives, and executive reporting.",
-  keywords: ["PPIOF", "Meta Ads", "campaign analytics", "performance dashboard", "marketing report"],
-  authors: [{ name: "PPIOF" }],
+  keywords: ["ADC", "Meta Ads", "campaign analytics", "performance dashboard", "marketing report"],
+  authors: [{ name: "ADC" }],
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",
     apple: "/icon.svg",
   },
   openGraph: {
-    title: "PPIOF Ads Report",
+    title: "ADC Ads Reporting",
     description: "Meta Ads analytics dashboard and reporting",
     url: "https://ppiof-ads-report.vercel.app",
-    siteName: "PPIOF Ads Report",
+    siteName: "ADC Ads Reporting",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "PPIOF Ads Report",
+    title: "ADC Ads Reporting",
     description: "Meta Ads analytics dashboard and reporting",
   },
 };

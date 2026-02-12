@@ -1,6 +1,6 @@
 export const FR_TRANSLATIONS: Record<string, string> = {
   // Global
-  'app.title': 'Rapport Publicitaire PPIOF',
+  'app.title': 'ADC Ads Reporting',
   'app.subtitle': 'Analytique Meta Ads',
   'action.refresh': 'Actualiser',
   'action.signOut': 'Se déconnecter',
@@ -76,7 +76,8 @@ export const FR_TRANSLATIONS: Record<string, string> = {
   'dashboard.table.campaignName': 'Nom de campagne',
   'dashboard.table.platform': 'Plateforme',
   'dashboard.table.status': 'Statut',
-  'dashboard.footer': 'Rapport Publicitaire PPIOF ©',
+  'dashboard.footer': 'ADC Ads Reporting ©',
+  'footer.madeIn': 'Conçu au Cambodge · EJC Digital',
   'dashboard.chat.title': 'Assistant du Tableau de Bord',
   'dashboard.chat.desc':
     'Réponses rapides sur les campagnes, dépenses, CTR, CPC et totaux.',

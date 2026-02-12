@@ -283,7 +283,7 @@ export function generateCampaignReportPDF(data: ReportData) {
       <Page size="A4" style={styles.page}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.title}>PPIOF Ads Performance Report</Text>
+            <Text style={styles.title}>ADC Ads Performance Report</Text>
             <Text style={styles.subtitle}>
               Reporting Window: {data.dateRange.start} to {data.dateRange.end}
             </Text>
@@ -400,7 +400,7 @@ export function generateCampaignReportPDF(data: ReportData) {
           </View>
         </View>
 
-        <Text style={styles.footer}>PPIOF Ads Report</Text>
+        <Text style={styles.footer}>ADC Ads Reporting</Text>
       </Page>
 
       <Page size="A4" style={styles.page} wrap>
