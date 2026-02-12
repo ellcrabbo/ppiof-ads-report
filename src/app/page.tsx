@@ -9,10 +9,13 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { LanguageToggle } from '@/components/language-toggle';
+import { useLanguage } from '@/components/language-provider';
 import { BarChart3, Upload, TrendingUp, FileText, Shield } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -29,21 +32,21 @@ export default function LoginPage() {
       if (result?.error) {
         toast({
           variant: 'destructive',
-          title: 'Authentication Failed',
-          description: 'Invalid password. Please try again.',
+          title: t('login.toast.authFailed.title', 'Authentication Failed'),
+          description: t('login.toast.authFailed.desc', 'Invalid password. Please try again.'),
         });
       } else {
         toast({
-          title: 'Welcome!',
-          description: 'You are now logged in.',
+          title: t('login.toast.welcome.title', 'Welcome!'),
+          description: t('login.toast.welcome.desc', 'You are now logged in.'),
         });
         router.push('/dashboard');
       }
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Something went wrong. Please try again.',
+        title: t('error.title', 'Error'),
+        description: t('login.toast.error.desc', 'Something went wrong. Please try again.'),
       });
     } finally {
       setLoading(false);
@@ -53,7 +56,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/60 dark:from-background dark:to-muted/20 flex items-center justify-center p-4 relative">
       <div className="absolute right-4 top-4">
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <LanguageToggle />
+          <ThemeToggle />
+        </div>
       </div>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
@@ -62,28 +68,28 @@ export default function LoginPage() {
               <BarChart3 className="h-8 w-8 text-primary-foreground" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold">PPIOF Ads Report</h1>
-          <p className="text-muted-foreground mt-2">Meta Ads Analytics Dashboard</p>
+          <h1 className="text-3xl font-bold">{t('app.title', 'PPIOF Ads Report')}</h1>
+          <p className="text-muted-foreground mt-2">{t('login.subtitle', 'Meta Ads Analytics Dashboard')}</p>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              Sign In
+              {t('login.cardTitle', 'Sign In')}
             </CardTitle>
             <CardDescription>
-              Enter your password to access the dashboard
+              {t('login.cardDescription', 'Enter your password to access the dashboard')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t('login.password', 'Password')}</Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder={t('login.passwordPlaceholder', 'Enter your password')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -91,7 +97,7 @@ export default function LoginPage() {
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Signing in...' : 'Sign In'}
+                {loading ? t('action.signingIn', 'Signing in...') : t('action.signIn', 'Sign In')}
               </Button>
             </form>
           </CardContent>
@@ -103,8 +109,8 @@ export default function LoginPage() {
               <Upload className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="font-medium text-sm">CSV Upload</p>
-              <p className="text-xs text-muted-foreground">Import Meta Ads data</p>
+              <p className="font-medium text-sm">{t('login.feature.csvTitle', 'CSV Upload')}</p>
+              <p className="text-xs text-muted-foreground">{t('login.feature.csvDescription', 'Import Meta Ads data')}</p>
             </div>
           </div>
 
@@ -113,8 +119,8 @@ export default function LoginPage() {
               <TrendingUp className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="font-medium text-sm">Analytics</p>
-              <p className="text-xs text-muted-foreground">Track performance metrics</p>
+              <p className="font-medium text-sm">{t('login.feature.analyticsTitle', 'Analytics')}</p>
+              <p className="text-xs text-muted-foreground">{t('login.feature.analyticsDescription', 'Track performance metrics')}</p>
             </div>
           </div>
 
@@ -123,8 +129,8 @@ export default function LoginPage() {
               <FileText className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <p className="font-medium text-sm">PDF Export</p>
-              <p className="text-xs text-muted-foreground">Generate reports</p>
+              <p className="font-medium text-sm">{t('login.feature.pdfTitle', 'PDF Export')}</p>
+              <p className="text-xs text-muted-foreground">{t('login.feature.pdfDescription', 'Generate reports')}</p>
             </div>
           </div>
         </div>

@@ -13,8 +13,11 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { LanguageToggle } from '@/components/language-toggle';
+import { useLanguage } from '@/components/language-provider';
 import { MarketingTerm } from '@/components/marketing-term';
 import { MarketingGlossary } from '@/components/marketing-glossary';
+import { MARKETING_GLOSSARY } from '@/lib/marketing-glossary';
 import {
   ArrowLeft,
   DollarSign,
@@ -85,6 +88,7 @@ interface CampaignDetail {
 
 export default function CampaignDetailPage() {
   const router = useRouter();
+  const { language, t } = useLanguage();
   const params = useParams<{ id: string }>();
   const campaignId = Array.isArray(params?.id) ? params.id[0] : params?.id;
   const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
@@ -119,8 +123,8 @@ export default function CampaignDetailPage() {
       console.error('Fetch error:', error);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to load campaign data.',
+        title: t('error.title', 'Error'),
+        description: t('error.loadCampaign', 'Failed to load campaign data.'),
       });
       router.push('/dashboard');
     } finally {
@@ -147,8 +151,8 @@ export default function CampaignDetailPage() {
       }
 
       toast({
-        title: 'Note Saved',
-        description: 'Your note has been saved successfully.',
+        title: t('campaign.notes.saved.title', 'Note Saved'),
+        description: t('campaign.notes.saved.desc', 'Your note has been saved successfully.'),
       });
 
       setNewNote('');
@@ -157,8 +161,8 @@ export default function CampaignDetailPage() {
       console.error('Save note error:', error);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to save note.',
+        title: t('error.title', 'Error'),
+        description: t('campaign.notes.saveError', 'Failed to save note.'),
       });
     } finally {
       setSavingNote(false);
@@ -309,14 +313,14 @@ export default function CampaignDetailPage() {
       }
 
       toast({
-        title: 'Creative updated',
-        description: 'Creative metadata saved successfully.',
+        title: t('campaign.creatives.saved.title', 'Creative updated'),
+        description: t('campaign.creatives.saved.desc', 'Creative metadata saved successfully.'),
       });
     } catch (error) {
       console.error('Creative update error:', error);
       toast({
         variant: 'destructive',
-        title: 'Update failed',
+        title: t('campaign.creatives.saveError', 'Update failed'),
         description: (error as Error).message,
       });
     }
@@ -327,7 +331,7 @@ export default function CampaignDetailPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <FileText className="h-12 w-12 animate-pulse mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Loading campaign...</p>
+          <p className="text-muted-foreground">{t('loading.campaign', 'Loading campaign...')}</p>
         </div>
       </div>
     );
@@ -367,16 +371,19 @@ export default function CampaignDetailPage() {
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard')}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+                {t('action.back', 'Back')}
               </Button>
               <div className="flex-1">
                 <h1 className="text-xl font-bold">{campaign.name}</h1>
                 <p className="text-sm text-muted-foreground">
-                  {campaign.platform || 'N/A'} • {campaign.status || 'N/A'}
+                  {campaign.platform || t('common.na', 'N/A')} • {campaign.status || t('common.na', 'N/A')}
                 </p>
               </div>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <LanguageToggle />
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </header>
@@ -388,8 +395,8 @@ export default function CampaignDetailPage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 <MarketingTerm
-                  term="Spend"
-                  definition="Total amount spent by this campaign in the imported time window."
+                  term={MARKETING_GLOSSARY.spend.term[language]}
+                  definition={MARKETING_GLOSSARY.spend.definition[language]}
                 />
               </CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -403,8 +410,8 @@ export default function CampaignDetailPage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 <MarketingTerm
-                  term="Impressions"
-                  definition="How many times this campaign's ads were served."
+                  term={MARKETING_GLOSSARY.impressions.term[language]}
+                  definition={MARKETING_GLOSSARY.impressions.definition[language]}
                 />
               </CardTitle>
               <Eye className="h-4 w-4 text-muted-foreground" />
@@ -418,8 +425,8 @@ export default function CampaignDetailPage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 <MarketingTerm
-                  term="Clicks"
-                  definition="Total number of ad clicks sent to your destination."
+                  term={MARKETING_GLOSSARY.clicks.term[language]}
+                  definition={MARKETING_GLOSSARY.clicks.definition[language]}
                 />
               </CardTitle>
               <MousePointer2 className="h-4 w-4 text-muted-foreground" />
@@ -428,8 +435,8 @@ export default function CampaignDetailPage() {
               <div className="text-2xl font-bold">{formatNumber(campaign.clicks)}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 <MarketingTerm
-                  term="CTR"
-                  definition="Click-through rate. CTR = Clicks / Impressions × 100. It measures how often people click after seeing an ad."
+                  term={MARKETING_GLOSSARY.ctr.term[language]}
+                  definition={MARKETING_GLOSSARY.ctr.definition[language]}
                   className="text-xs"
                 />{' '}
                 {ctr.toFixed(2)}%
@@ -441,8 +448,8 @@ export default function CampaignDetailPage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 <MarketingTerm
-                  term="CPC"
-                  definition="Cost per click. CPC = Spend / Clicks."
+                  term={MARKETING_GLOSSARY.cpc.term[language]}
+                  definition={MARKETING_GLOSSARY.cpc.definition[language]}
                 />
               </CardTitle>
               <Target className="h-4 w-4 text-muted-foreground" />
@@ -451,8 +458,8 @@ export default function CampaignDetailPage() {
               <div className="text-2xl font-bold">{formatCurrency(campaign.cpc || 0)}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 <MarketingTerm
-                  term="CPM"
-                  definition="Cost per thousand impressions. CPM = Spend / (Impressions / 1,000)."
+                  term={MARKETING_GLOSSARY.cpm.term[language]}
+                  definition={MARKETING_GLOSSARY.cpm.definition[language]}
                   className="text-xs"
                 />{' '}
                 {formatCurrency(campaign.cpm || 0)}
@@ -463,9 +470,12 @@ export default function CampaignDetailPage() {
 
         <Card className="mb-6">
           <CardHeader className="pb-3">
-            <CardTitle>Marketing Glossary</CardTitle>
+            <CardTitle>{t('dashboard.glossary.title', 'Marketing Glossary')}</CardTitle>
             <CardDescription>
-              Hover any term to get a quick definition while reviewing this campaign.
+              {t(
+                'campaign.glossary.desc',
+                'Hover any term to get a quick definition while reviewing this campaign.'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -489,20 +499,20 @@ export default function CampaignDetailPage() {
 
         <Tabs defaultValue="creatives" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="adsets">Ad Sets</TabsTrigger>
-            <TabsTrigger value="ads">Top Ads</TabsTrigger>
-            <TabsTrigger value="creatives">Creatives</TabsTrigger>
-            <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
-            <TabsTrigger value="notes">Notes</TabsTrigger>
+            <TabsTrigger value="adsets">{t('campaign.tabs.adsets', 'Ad Sets')}</TabsTrigger>
+            <TabsTrigger value="ads">{t('campaign.tabs.ads', 'Top Ads')}</TabsTrigger>
+            <TabsTrigger value="creatives">{t('campaign.tabs.creatives', 'Creatives')}</TabsTrigger>
+            <TabsTrigger value="recommendations">{t('campaign.tabs.recommendations', 'Recommendations')}</TabsTrigger>
+            <TabsTrigger value="notes">{t('campaign.tabs.notes', 'Notes')}</TabsTrigger>
           </TabsList>
 
           {/* Ad Sets Tab */}
           <TabsContent value="adsets" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Ad Sets</CardTitle>
+                <CardTitle>{t('campaign.adsets.title', 'Ad Sets')}</CardTitle>
                 <CardDescription>
-                  {campaign.adSets.length} ad set{campaign.adSets.length !== 1 ? 's' : ''}
+                  {campaign.adSets.length} {t('campaign.adsets.count', 'ad sets')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -512,19 +522,19 @@ export default function CampaignDetailPage() {
                       <TableRow>
                         <TableHead>Ad Set Name</TableHead>
                         <TableHead className="text-right">
-                          <MarketingTerm term="Spend" definition="Amount spent by this ad set." />
+                          <MarketingTerm term={MARKETING_GLOSSARY.spend.term[language]} definition={MARKETING_GLOSSARY.spend.definition[language]} />
                         </TableHead>
                         <TableHead className="text-right">
-                          <MarketingTerm term="Impressions" definition="Total times ads from this ad set were shown." />
+                          <MarketingTerm term={MARKETING_GLOSSARY.impressions.term[language]} definition={MARKETING_GLOSSARY.impressions.definition[language]} />
                         </TableHead>
                         <TableHead className="text-right">
-                          <MarketingTerm term="Clicks" definition="Total ad clicks for this ad set." />
+                          <MarketingTerm term={MARKETING_GLOSSARY.clicks.term[language]} definition={MARKETING_GLOSSARY.clicks.definition[language]} />
                         </TableHead>
                         <TableHead className="text-right">
-                          <MarketingTerm term="CTR" definition="Click-through rate for this ad set." />
+                          <MarketingTerm term={MARKETING_GLOSSARY.ctr.term[language]} definition={MARKETING_GLOSSARY.ctr.definition[language]} />
                         </TableHead>
                         <TableHead className="text-right">
-                          <MarketingTerm term="CPC" definition="Cost per click for this ad set." />
+                          <MarketingTerm term={MARKETING_GLOSSARY.cpc.term[language]} definition={MARKETING_GLOSSARY.cpc.definition[language]} />
                         </TableHead>
                       </TableRow>
                     </TableHeader>
@@ -573,9 +583,9 @@ export default function CampaignDetailPage() {
           <TabsContent value="ads" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Top Performing Ads</CardTitle>
+                <CardTitle>{t('campaign.ads.title', 'Top Performing Ads')}</CardTitle>
                 <CardDescription>
-                  Top 10 ads by click-through rate
+                  {t('campaign.ads.desc', 'Top 10 ads by click-through rate')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -583,22 +593,22 @@ export default function CampaignDetailPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Ad Name</TableHead>
-                        <TableHead>Creative</TableHead>
+                        <TableHead>{t('campaign.table.adName', 'Ad Name')}</TableHead>
+                        <TableHead>{t('campaign.table.creative', 'Creative')}</TableHead>
                         <TableHead className="text-right">
-                          <MarketingTerm term="Spend" definition="Amount spent by this ad." />
+                          <MarketingTerm term={MARKETING_GLOSSARY.spend.term[language]} definition={MARKETING_GLOSSARY.spend.definition[language]} />
                         </TableHead>
                         <TableHead className="text-right">
-                          <MarketingTerm term="Impressions" definition="Total times this ad was shown." />
+                          <MarketingTerm term={MARKETING_GLOSSARY.impressions.term[language]} definition={MARKETING_GLOSSARY.impressions.definition[language]} />
                         </TableHead>
                         <TableHead className="text-right">
-                          <MarketingTerm term="Clicks" definition="Total clicks generated by this ad." />
+                          <MarketingTerm term={MARKETING_GLOSSARY.clicks.term[language]} definition={MARKETING_GLOSSARY.clicks.definition[language]} />
                         </TableHead>
                         <TableHead className="text-right">
-                          <MarketingTerm term="CTR" definition="Click-through rate for this ad." />
+                          <MarketingTerm term={MARKETING_GLOSSARY.ctr.term[language]} definition={MARKETING_GLOSSARY.ctr.definition[language]} />
                         </TableHead>
                         <TableHead className="text-right">
-                          <MarketingTerm term="CPC" definition="Cost per click for this ad." />
+                          <MarketingTerm term={MARKETING_GLOSSARY.cpc.term[language]} definition={MARKETING_GLOSSARY.cpc.definition[language]} />
                         </TableHead>
                       </TableRow>
                     </TableHeader>
@@ -608,7 +618,7 @@ export default function CampaignDetailPage() {
                           <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                             <div className="flex flex-col items-center gap-2">
                               <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                              <p>No ads with sufficient data</p>
+                              <p>{t('campaign.ads.noData', 'No ads with sufficient data')}</p>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -648,11 +658,11 @@ export default function CampaignDetailPage() {
                                       className="text-xs text-primary hover:underline inline-flex items-center gap-1"
                                     >
                                       <ExternalLink className="h-3 w-3" />
-                                      Open
+                                      {t('action.open', 'Open')}
                                     </a>
                                   </div>
                                 ) : (
-                                  <span className="text-muted-foreground">No creative</span>
+                                  <span className="text-muted-foreground">{t('dashboard.creativeHighlights.noPreview', 'No creative')}</span>
                                 )}
                               </TableCell>
                               <TableCell className="text-right">
@@ -687,22 +697,22 @@ export default function CampaignDetailPage() {
           <TabsContent value="creatives" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Ad Creatives</CardTitle>
+                <CardTitle>{t('campaign.creatives.title', 'Ad Creatives')}</CardTitle>
                 <CardDescription>
-                  Visual creative gallery plus editable metadata per ad
+                  {t('campaign.creatives.desc', 'Visual creative gallery plus editable metadata per ad')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold">Creative Gallery</h3>
+                    <h3 className="text-sm font-semibold">{t('campaign.creatives.galleryTitle', 'Creative Gallery')}</h3>
                     <p className="text-xs text-muted-foreground">
-                      {adsWithCreative.length} ad{adsWithCreative.length !== 1 ? 's' : ''} with previews
+                      {adsWithCreative.length} {t('campaign.creatives.galleryCount', 'ads with previews')}
                     </p>
                   </div>
                   {adsWithCreative.length === 0 ? (
                     <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-                      No creatives saved yet. Add URLs below to build the gallery.
+                      {t('campaign.creatives.galleryEmpty', 'No creatives saved yet. Add URLs below to build the gallery.')}
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -738,7 +748,7 @@ export default function CampaignDetailPage() {
                               </p>
                               <div className="flex items-center justify-between text-xs text-muted-foreground">
                                 <span>Spend {formatCurrency(ad.spend)}</span>
-                                <span>Clicks {formatNumber(ad.clicks)}</span>
+                                <span>{MARKETING_GLOSSARY.clicks.term[language]} {formatNumber(ad.clicks)}</span>
                               </div>
                               <a
                                 href={creativeUrl}
@@ -747,7 +757,7 @@ export default function CampaignDetailPage() {
                                 className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                               >
                                 <ExternalLink className="h-3 w-3" />
-                                Open Original
+                                {t('action.openOriginal', 'Open Original')}
                               </a>
                             </div>
                           </div>
@@ -757,7 +767,10 @@ export default function CampaignDetailPage() {
                   )}
                   {adsWithCreative.length > 18 && (
                     <p className="text-xs text-muted-foreground">
-                      Showing top 18 creatives by spend. Full list remains editable below.
+                      {t(
+                        'campaign.creatives.galleryShowing',
+                        'Showing top 18 creatives by spend. Full list remains editable below.'
+                      )}
                     </p>
                   )}
                 </div>
@@ -766,20 +779,20 @@ export default function CampaignDetailPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Creative</TableHead>
-                        <TableHead>Ad</TableHead>
-                        <TableHead>Ad Set</TableHead>
-                        <TableHead>Type</TableHead>
+                        <TableHead>{t('campaign.table.creative', 'Creative')}</TableHead>
+                        <TableHead>{t('campaign.table.ad', 'Ad')}</TableHead>
+                        <TableHead>{t('campaign.table.adSet', 'Ad Set')}</TableHead>
+                        <TableHead>{t('campaign.table.type', 'Type')}</TableHead>
                         <TableHead>URL</TableHead>
-                        <TableHead>Carousel</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
+                        <TableHead>{t('campaign.table.carousel', 'Carousel')}</TableHead>
+                        <TableHead className="text-right">{t('campaign.table.action', 'Action')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {allAds.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                            No ads found for this campaign.
+                            {t('campaign.creatives.noAds', 'No ads found for this campaign.')}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -829,14 +842,14 @@ export default function CampaignDetailPage() {
                                     })
                                   }
                                 >
-                                  <SelectTrigger className="w-[140px]">
-                                    <SelectValue placeholder="Select type" />
-                                  </SelectTrigger>
+                                    <SelectTrigger className="w-[140px]">
+                                    <SelectValue placeholder={t('campaign.creatives.selectType', 'Select type')} />
+                                    </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="UNSET">Not set</SelectItem>
-                                    <SelectItem value="IMAGE">Image</SelectItem>
-                                    <SelectItem value="VIDEO">Video</SelectItem>
-                                    <SelectItem value="CAROUSEL">Carousel</SelectItem>
+                                    <SelectItem value="UNSET">{t('campaign.creatives.notSet', 'Not set')}</SelectItem>
+                                    <SelectItem value="IMAGE">{t('campaign.creatives.imageLabel', 'Image')}</SelectItem>
+                                    <SelectItem value="VIDEO">{t('campaign.creatives.videoLabel', 'Video')}</SelectItem>
+                                    <SelectItem value="CAROUSEL">{t('campaign.creatives.carouselLabel', 'Carousel')}</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </TableCell>
@@ -845,7 +858,7 @@ export default function CampaignDetailPage() {
                                   <div className="flex items-center gap-2">
                                     <Badge variant="secondary">
                                       <Lock className="mr-1 h-3 w-3" />
-                                      URL saved
+                                      {t('campaign.creatives.urlSaved', 'URL saved')}
                                     </Badge>
                                     <Button
                                       size="sm"
@@ -853,7 +866,7 @@ export default function CampaignDetailPage() {
                                       onClick={() => unlockCreativeUrl(ad.id)}
                                     >
                                       <LockOpen className="h-4 w-4 mr-1" />
-                                      Unlock
+                                      {t('action.unlock', 'Unlock')}
                                     </Button>
                                     {ad.creativeUrl && (
                                       <a
@@ -863,7 +876,7 @@ export default function CampaignDetailPage() {
                                         className="text-xs text-primary underline inline-flex items-center gap-1"
                                       >
                                         <ExternalLink className="h-3 w-3" />
-                                        Open
+                                        {t('action.open', 'Open')}
                                       </a>
                                     )}
                                   </div>
@@ -874,7 +887,7 @@ export default function CampaignDetailPage() {
                                       onChange={(e) =>
                                         updateCreativeEdit(ad.id, { creativeUrl: e.target.value })
                                       }
-                                      placeholder="Paste creative URL"
+                                      placeholder={t('campaign.creatives.placeholderUrl', 'Paste creative URL')}
                                       className="min-w-[240px]"
                                     />
                                     {creativeUrl && (
@@ -885,7 +898,7 @@ export default function CampaignDetailPage() {
                                         className="text-xs text-primary underline inline-flex items-center gap-1"
                                       >
                                         <ExternalLink className="h-3 w-3" />
-                                        Open
+                                        {t('action.open', 'Open')}
                                       </a>
                                     )}
                                   </div>
@@ -903,7 +916,7 @@ export default function CampaignDetailPage() {
                                         creativeCarouselTotal: e.target.value,
                                       })
                                     }
-                                    placeholder={isCarousel ? 'Cards' : 'N/A'}
+                                    placeholder={isCarousel ? t('campaign.creatives.cards', 'Cards') : t('common.na', 'N/A')}
                                     className="w-20"
                                   />
                                   {isCarousel && <Layers className="h-4 w-4 text-muted-foreground" />}
@@ -912,7 +925,9 @@ export default function CampaignDetailPage() {
                               <TableCell className="text-right">
                                 <Button size="sm" variant="outline" onClick={() => handleSaveCreative(ad.id)}>
                                   <Save className="h-4 w-4 mr-2" />
-                                  {creativeUrlUnlocked[ad.id] ? 'Save & Lock' : 'Save'}
+                                  {creativeUrlUnlocked[ad.id]
+                                    ? t('action.saveAndLock', 'Save & Lock')
+                                    : t('action.save', 'Save')}
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -930,9 +945,9 @@ export default function CampaignDetailPage() {
           <TabsContent value="recommendations" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Campaign Recommendations</CardTitle>
+                <CardTitle>{t('campaign.recommendations.title', 'Campaign Recommendations')}</CardTitle>
                 <CardDescription>
-                  Actionable insights based on campaign performance
+                  {t('campaign.recommendations.desc', 'Actionable insights based on campaign performance')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -947,13 +962,13 @@ export default function CampaignDetailPage() {
                         <h3 className="font-semibold text-sm mb-2">{rec.summary}</h3>
                         <div className="space-y-2 text-sm">
                           <div>
-                            <strong>What Happened:</strong> {rec.whatHappened}
+                            <strong>{t('campaign.recommendations.whatHappened', 'What Happened')}:</strong> {rec.whatHappened}
                           </div>
                           <div>
-                            <strong>What to Change:</strong> {rec.whatToChange}
+                            <strong>{t('campaign.recommendations.whatToChange', 'What to Change')}:</strong> {rec.whatToChange}
                           </div>
                           <div>
-                            <strong>What to Test:</strong> {rec.whatToTest}
+                            <strong>{t('campaign.recommendations.whatToTest', 'What to Test')}:</strong> {rec.whatToTest}
                           </div>
                         </div>
                       </div>
@@ -968,35 +983,35 @@ export default function CampaignDetailPage() {
           <TabsContent value="notes" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Campaign Notes</CardTitle>
+                <CardTitle>{t('campaign.notes.title', 'Campaign Notes')}</CardTitle>
                 <CardDescription>
-                  Add your observations and annotations
+                  {t('campaign.notes.desc', 'Add your observations and annotations')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="new-note">Add a Note</Label>
+                  <Label htmlFor="new-note">{t('campaign.notes.addLabel', 'Add a Note')}</Label>
                   <Textarea
                     id="new-note"
-                    placeholder="Enter your notes or observations..."
+                    placeholder={t('campaign.notes.placeholder', 'Enter your notes or observations...')}
                     value={newNote}
                     onChange={(e) => setNewNote(e.target.value)}
                     rows={4}
                   />
                   <Button onClick={handleSaveNote} disabled={!newNote.trim() || savingNote}>
                     <Save className="h-4 w-4 mr-2" />
-                    {savingNote ? 'Saving...' : 'Save Note'}
+                    {savingNote ? t('campaign.notes.saving', 'Saving...') : t('campaign.notes.saveAction', 'Save Note')}
                   </Button>
                 </div>
 
                 <div className="border-t pt-4">
                   <h3 className="font-semibold mb-4 flex items-center gap-2">
                     <MessageSquare className="h-4 w-4" />
-                    Previous Notes
+                    {t('campaign.notes.previous', 'Previous Notes')}
                   </h3>
                   {campaign.notes.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No notes yet. Add your first note above.
+                      {t('campaign.notes.empty', 'No notes yet. Add your first note above.')}
                     </p>
                   ) : (
                     <div className="space-y-3 max-h-[400px] overflow-y-auto">

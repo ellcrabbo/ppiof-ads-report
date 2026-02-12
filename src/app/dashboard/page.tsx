@@ -11,6 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { LanguageToggle } from '@/components/language-toggle';
+import { useLanguage } from '@/components/language-provider';
 import { MarketingTerm } from '@/components/marketing-term';
 import { MarketingGlossary } from '@/components/marketing-glossary';
 import { MARKETING_GLOSSARY } from '@/lib/marketing-glossary';
@@ -97,6 +99,7 @@ interface ChatMessage {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { language, t } = useLanguage();
   const { status } = useSession();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -106,8 +109,7 @@ export default function DashboardPage() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      content:
-        'Ask me anything about this dataset, e.g. "top campaign by spend", "overall CTR", or "how many campaigns do we have?"',
+      content: 'Ask me anything about this dataset, e.g. "top campaign by spend", "overall CTR", or "how many campaigns do we have?"',
     },
   ]);
   const [chatInput, setChatInput] = useState('');
@@ -137,6 +139,21 @@ export default function DashboardPage() {
     return () => clearTimeout(timer);
   }, [loading, hasAutoCollapsed]);
 
+  useEffect(() => {
+    setChatMessages((prev) => {
+      if (prev.length !== 1 || prev[0]?.role !== 'assistant') return prev;
+      return [
+        {
+          role: 'assistant',
+          content: t(
+            'dashboard.chat.initial',
+            'Ask me anything about this dataset, e.g. "top campaign by spend", "overall CTR", or "how many campaigns do we have?"'
+          ),
+        },
+      ];
+    });
+  }, [t, language]);
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -158,8 +175,8 @@ export default function DashboardPage() {
       console.error('Fetch error:', error);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to load dashboard data.',
+        title: t('error.title', 'Error'),
+        description: t('error.loadDashboard', 'Failed to load dashboard data.'),
       });
     } finally {
       setLoading(false);
@@ -173,8 +190,8 @@ export default function DashboardPage() {
     if (!file.name.endsWith('.csv')) {
       toast({
         variant: 'destructive',
-        title: 'Invalid File',
-        description: 'Please upload a CSV file.',
+        title: t('dashboard.upload.invalidFileTitle', 'Invalid File'),
+        description: t('dashboard.upload.invalidFileDescription', 'Please upload a CSV file.'),
       });
       return;
     }
@@ -197,13 +214,13 @@ export default function DashboardPage() {
       }
 
       toast({
-        title: 'Upload Successful',
-        description: `Imported ${data.campaignsCreated} campaigns, ${data.adSetsCreated} ad sets, and ${data.adsCreated} ads.`,
+        title: t('dashboard.upload.successTitle', 'Upload Successful'),
+        description: `${t('dashboard.upload.importedPrefix', 'Imported')} ${data.campaignsCreated} ${t('dashboard.campaigns.title', 'Campaigns').toLowerCase()}, ${data.adSetsCreated} ${t('campaign.tabs.adsets', 'Ad Sets').toLowerCase()}, ${t('dashboard.upload.and', 'and')} ${data.adsCreated} ${t('campaign.tabs.ads', 'Ads').toLowerCase()}.`,
       });
 
       if (data.warnings && data.warnings.length > 0) {
         toast({
-          title: 'Warnings',
+          title: t('dashboard.upload.warningsTitle', 'Warnings'),
           description: data.warnings.join(', '),
         });
       }
@@ -213,7 +230,7 @@ export default function DashboardPage() {
       console.error('Upload error:', error);
       toast({
         variant: 'destructive',
-        title: 'Upload Failed',
+        title: t('dashboard.upload.failedTitle', 'Upload Failed'),
         description: (error as Error).message,
       });
     } finally {
@@ -249,14 +266,14 @@ export default function DashboardPage() {
       document.body.removeChild(a);
 
       toast({
-        title: 'Export Successful',
-        description: 'PDF report has been downloaded.',
+        title: t('dashboard.export.successTitle', 'Export Successful'),
+        description: t('dashboard.export.successDescription', 'PDF report has been downloaded.'),
       });
     } catch (error) {
       console.error('Export error:', error);
       toast({
         variant: 'destructive',
-        title: 'Export Failed',
+        title: t('dashboard.export.failedTitle', 'Export Failed'),
         description: (error as Error).message,
       });
     } finally {
@@ -387,18 +404,18 @@ export default function DashboardPage() {
   const getEfficiencyTone = (ctrDelta: number, cpcDelta: number) => {
     if (ctrDelta >= 0.2 && cpcDelta >= 0.01) {
       return {
-        label: 'Strong',
+        label: t('dashboard.efficiency.strong', 'Strong'),
         className: 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
       };
     }
     if (ctrDelta >= 0 || cpcDelta >= 0) {
       return {
-        label: 'Solid',
+        label: t('dashboard.efficiency.solid', 'Solid'),
         className: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
       };
     }
     return {
-      label: 'Watch',
+      label: t('dashboard.efficiency.watch', 'Watch'),
       className: 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
     };
   };
@@ -434,7 +451,7 @@ export default function DashboardPage() {
         ...prev,
         {
           role: 'assistant',
-          content: `I couldn't answer that right now: ${(error as Error).message}`,
+          content: `${t('dashboard.chat.failPrefix', "I couldn't answer that right now:")} ${(error as Error).message}`,
         },
       ]);
     } finally {
@@ -447,7 +464,7 @@ export default function DashboardPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <BarChart3 className="h-12 w-12 animate-pulse mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Loading dashboard...</p>
+          <p className="text-muted-foreground">{t('loading.dashboard', 'Loading dashboard...')}</p>
         </div>
       </div>
     );
@@ -464,19 +481,20 @@ export default function DashboardPage() {
                 <BarChart3 className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">PPIOF Ads Report</h1>
-                <p className="text-sm text-muted-foreground">Meta Ads Analytics</p>
+                <h1 className="text-xl font-bold">{t('app.title', 'PPIOF Ads Report')}</h1>
+                <p className="text-sm text-muted-foreground">{t('app.subtitle', 'Meta Ads Analytics')}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <LanguageToggle />
               <ThemeToggle />
               <Button variant="outline" size="sm" onClick={() => fetchData()}>
                 <TrendingUp className="h-4 w-4 mr-2" />
-                Refresh
+                {t('action.refresh', 'Refresh')}
               </Button>
               <Button variant="outline" size="sm" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+                {t('action.signOut', 'Sign Out')}
               </Button>
             </div>
           </div>
@@ -490,8 +508,8 @@ export default function DashboardPage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 <MarketingTerm
-                  term="Total Spend"
-                  definition="Total ad budget used in the selected dataset."
+                  term={t('dashboard.totalSpend', 'Total Spend')}
+                  definition={MARKETING_GLOSSARY.spend.definition[language]}
                 />
               </CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -507,8 +525,8 @@ export default function DashboardPage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 <MarketingTerm
-                  term="Impressions"
-                  definition="How many times ads were shown. One person can generate multiple impressions."
+                  term={MARKETING_GLOSSARY.impressions.term[language]}
+                  definition={MARKETING_GLOSSARY.impressions.definition[language]}
                 />
               </CardTitle>
               <Eye className="h-4 w-4 text-muted-foreground" />
@@ -524,8 +542,8 @@ export default function DashboardPage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 <MarketingTerm
-                  term="Clicks"
-                  definition="How many times users clicked from an ad to your destination."
+                  term={MARKETING_GLOSSARY.clicks.term[language]}
+                  definition={MARKETING_GLOSSARY.clicks.definition[language]}
                 />
               </CardTitle>
               <MousePointer2 className="h-4 w-4 text-muted-foreground" />
@@ -537,8 +555,8 @@ export default function DashboardPage() {
               {summary && (
                 <p className="text-xs text-muted-foreground">
                   <MarketingTerm
-                    term="CTR"
-                    definition="Click-through rate. CTR = Clicks / Impressions × 100. Higher CTR usually means stronger ad relevance."
+                    term={MARKETING_GLOSSARY.ctr.term[language]}
+                    definition={MARKETING_GLOSSARY.ctr.definition[language]}
                     className="text-xs"
                   />{' '}
                   {summary.ctr.toFixed(2)}%
@@ -551,8 +569,8 @@ export default function DashboardPage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 <MarketingTerm
-                  term="Avg CPC"
-                  definition="Cost per click. CPC = Spend / Clicks. Lower CPC means cheaper traffic."
+                  term={t('dashboard.avgCpc', 'Avg CPC')}
+                  definition={MARKETING_GLOSSARY.cpc.definition[language]}
                 />
               </CardTitle>
               <Target className="h-4 w-4 text-muted-foreground" />
@@ -564,8 +582,8 @@ export default function DashboardPage() {
               {summary && (
                 <p className="text-xs text-muted-foreground">
                   <MarketingTerm
-                    term="CPM"
-                    definition="Cost per thousand impressions. CPM = Spend / (Impressions / 1,000)."
+                    term={MARKETING_GLOSSARY.cpm.term[language]}
+                    definition={MARKETING_GLOSSARY.cpm.definition[language]}
                     className="text-xs"
                   />{' '}
                   {formatCurrency(summary.avgCPM)}
@@ -581,7 +599,7 @@ export default function DashboardPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search campaigns..."
+                placeholder={t('dashboard.searchCampaigns', 'Search campaigns...')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -590,7 +608,7 @@ export default function DashboardPage() {
           </div>
           <Button onClick={() => document.getElementById('file-upload')?.click()} disabled={uploading}>
             <Upload className="h-4 w-4 mr-2" />
-            {uploading ? 'Uploading...' : 'Upload CSV'}
+            {uploading ? t('action.uploading', 'Uploading...') : t('action.uploadCsv', 'Upload CSV')}
           </Button>
           <input
             id="file-upload"
@@ -601,15 +619,15 @@ export default function DashboardPage() {
           />
           <Button variant="outline" onClick={handleExport} disabled={exporting || filteredCampaigns.length === 0}>
             <Download className="h-4 w-4 mr-2" />
-            {exporting ? 'Exporting...' : 'Export PDF'}
+            {exporting ? t('action.exporting', 'Exporting...') : t('action.exportPdf', 'Export PDF')}
           </Button>
         </div>
 
         <Card className="mb-6">
           <CardHeader className="pb-3">
-            <CardTitle>Marketing Glossary</CardTitle>
+            <CardTitle>{t('dashboard.glossary.title', 'Marketing Glossary')}</CardTitle>
             <CardDescription>
-              Hover any term to see a plain-English definition.
+              {t('dashboard.glossary.desc', 'Hover any term to see a plain-English definition.')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -635,15 +653,21 @@ export default function DashboardPage() {
         {/* Creative Highlights */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Creative Highlights</CardTitle>
+            <CardTitle>{t('dashboard.creativeHighlights.title', 'Creative Highlights')}</CardTitle>
             <CardDescription>
-              Visual strip of top creatives by spend so ads are immediately recognizable.
+              {t(
+                'dashboard.creativeHighlights.desc',
+                'Visual strip of top creatives by spend so ads are immediately recognizable.'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {creativeHighlights.length === 0 ? (
               <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-                No creative previews yet. Upload or save creative URLs to populate this gallery.
+                {t(
+                  'dashboard.creativeHighlights.empty',
+                  'No creative previews yet. Upload or save creative URLs to populate this gallery.'
+                )}
               </div>
             ) : (
               <div
@@ -689,7 +713,7 @@ export default function DashboardPage() {
                           )}
 
                           <span className="absolute top-2 left-2 rounded bg-black/65 px-2 py-0.5 text-xs text-white">
-                            {creative.creativeType || 'IMAGE'}
+                            {creative.creativeType || t('campaign.creatives.image', 'IMAGE')}
                           </span>
                         </div>
 
@@ -698,7 +722,7 @@ export default function DashboardPage() {
                           <p className="text-xs text-muted-foreground truncate">{creative.campaignName}</p>
                           <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <span>{formatCurrency(creative.spend)}</span>
-                            <span>CTR {ctr.toFixed(2)}%</span>
+                            <span>{MARKETING_GLOSSARY.ctr.term[language]} {ctr.toFixed(2)}%</span>
                           </div>
                           {creative.creativeUrl && (
                             <a
@@ -709,7 +733,7 @@ export default function DashboardPage() {
                               className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                             >
                               <ExternalLink className="h-3 w-3" />
-                              Open original
+                              {t('action.openOriginal', 'Open original')}
                             </a>
                           )}
                         </div>
@@ -729,25 +753,28 @@ export default function DashboardPage() {
               <CardTitle>
                 <span className="flex flex-wrap items-center gap-2">
                   <MarketingTerm
-                    term={MARKETING_GLOSSARY.spend.term}
-                    definition={MARKETING_GLOSSARY.spend.definition}
+                    term={MARKETING_GLOSSARY.spend.term[language]}
+                    definition={MARKETING_GLOSSARY.spend.definition[language]}
                   />
                   <span>vs</span>
                   <MarketingTerm
-                    term={MARKETING_GLOSSARY.ctr.term}
-                    definition={MARKETING_GLOSSARY.ctr.definition}
+                    term={MARKETING_GLOSSARY.ctr.term[language]}
+                    definition={MARKETING_GLOSSARY.ctr.definition[language]}
                   />
                 </span>
               </CardTitle>
               <CardDescription>
-                Spend bars with CTR trend line so you can spot expensive but weak campaigns fast.
+                {t(
+                  'dashboard.visualInsights.spendVsCtrDesc',
+                  'Spend bars with CTR trend line so you can spot expensive but weak campaigns fast.'
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="h-[250px]">
                 {performanceMixData.length === 0 ? (
                   <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-                    No chart data available
+                    {t('dashboard.visualInsights.noChartData', 'No chart data available')}
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
@@ -774,19 +801,19 @@ export default function DashboardPage() {
                       />
                       <RechartsTooltip
                         formatter={(value: number, key: string) => {
-                          if (key === 'spend') return [formatCurrency(Number(value)), 'Spend'];
-                          if (key === 'ctr') return [`${Number(value).toFixed(2)}%`, 'CTR'];
+                          if (key === 'spend') return [formatCurrency(Number(value)), MARKETING_GLOSSARY.spend.term[language]];
+                          if (key === 'ctr') return [`${Number(value).toFixed(2)}%`, MARKETING_GLOSSARY.ctr.term[language]];
                           return [String(value), key];
                         }}
                         contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)' }}
                       />
                       <Legend wrapperStyle={{ fontSize: 12 }} />
-                      <Bar yAxisId="left" dataKey="spend" name="Spend" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                      <Bar yAxisId="left" dataKey="spend" name={MARKETING_GLOSSARY.spend.term[language]} fill="#2563eb" radius={[4, 4, 0, 0]} />
                       <Line
                         yAxisId="right"
                         type="monotone"
                         dataKey="ctr"
-                        name="CTR %"
+                        name={`${MARKETING_GLOSSARY.ctr.term[language]} %`}
                         stroke="#0ea5e9"
                         strokeWidth={2}
                         dot={{ r: 3 }}
@@ -799,28 +826,28 @@ export default function DashboardPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="rounded-md border bg-muted/20 p-3">
-                  <p className="text-xs text-muted-foreground">Top Spend Campaign</p>
-                  <p className="text-sm font-medium truncate mt-1">{topSpendCampaign?.name || 'N/A'}</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.visualInsights.topSpendCampaign', 'Top Spend Campaign')}</p>
+                  <p className="text-sm font-medium truncate mt-1">{topSpendCampaign?.name || t('common.na', 'N/A')}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {topSpendCampaign
-                      ? `${formatCurrency(topSpendCampaign.spend)} • ${((topSpendCampaign.spend / Math.max(totalFilteredSpend, 1)) * 100).toFixed(1)}% of spend`
-                      : 'No data'}
+                      ? `${formatCurrency(topSpendCampaign.spend)} • ${((topSpendCampaign.spend / Math.max(totalFilteredSpend, 1)) * 100).toFixed(1)}% ${t('dashboard.ofSpend', 'of spend')}`
+                      : t('dashboard.visualInsights.noData', 'No data')}
                   </p>
                 </div>
                 <div className="rounded-md border bg-muted/20 p-3">
-                  <p className="text-xs text-muted-foreground">Best CTR</p>
-                  <p className="text-sm font-medium truncate mt-1">{bestCtrCampaign?.name || 'N/A'}</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.visualInsights.bestCtr', 'Best CTR')}</p>
+                  <p className="text-sm font-medium truncate mt-1">{bestCtrCampaign?.name || t('common.na', 'N/A')}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {bestCtrCampaign
-                      ? `${((bestCtrCampaign.clicks / Math.max(bestCtrCampaign.impressions, 1)) * 100).toFixed(2)}% CTR`
-                      : 'No data'}
+                      ? `${((bestCtrCampaign.clicks / Math.max(bestCtrCampaign.impressions, 1)) * 100).toFixed(2)}% ${MARKETING_GLOSSARY.ctr.term[language]}`
+                      : t('dashboard.visualInsights.noData', 'No data')}
                   </p>
                 </div>
                 <div className="rounded-md border bg-muted/20 p-3">
-                  <p className="text-xs text-muted-foreground">Lowest CPC</p>
-                  <p className="text-sm font-medium truncate mt-1">{lowestCpcCampaign?.name || 'N/A'}</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.visualInsights.lowestCpc', 'Lowest CPC')}</p>
+                  <p className="text-sm font-medium truncate mt-1">{lowestCpcCampaign?.name || t('common.na', 'N/A')}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {lowestCpcCampaign ? formatCurrency(lowestCpcCampaign.cpc || 0) : 'No data'}
+                    {lowestCpcCampaign ? formatCurrency(lowestCpcCampaign.cpc || 0) : t('dashboard.visualInsights.noData', 'No data')}
                   </p>
                 </div>
               </div>
@@ -829,24 +856,24 @@ export default function DashboardPage() {
 
           <Card className="self-start h-fit">
             <CardHeader>
-              <CardTitle>Efficiency Snapshot</CardTitle>
+              <CardTitle>{t('dashboard.efficiency.title', 'Efficiency Snapshot')}</CardTitle>
               <CardDescription>
                 Ranked by{' '}
                 <MarketingTerm
-                  term={MARKETING_GLOSSARY.opportunityScore.term}
-                  definition={MARKETING_GLOSSARY.opportunityScore.definition}
+                  term={MARKETING_GLOSSARY.opportunityScore.term[language]}
+                  definition={MARKETING_GLOSSARY.opportunityScore.definition[language]}
                   className="text-xs"
                 />{' '}
                 (higher{' '}
                 <MarketingTerm
-                  term={MARKETING_GLOSSARY.ctr.term}
-                  definition={MARKETING_GLOSSARY.ctr.definition}
+                  term={MARKETING_GLOSSARY.ctr.term[language]}
+                  definition={MARKETING_GLOSSARY.ctr.definition[language]}
                   className="text-xs"
                 />{' '}
                 with lower{' '}
                 <MarketingTerm
-                  term={MARKETING_GLOSSARY.cpc.term}
-                  definition={MARKETING_GLOSSARY.cpc.definition}
+                  term={MARKETING_GLOSSARY.cpc.term[language]}
+                  definition={MARKETING_GLOSSARY.cpc.definition[language]}
                   className="text-xs"
                 />
                 ).
@@ -855,7 +882,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="space-y-3">
                 {efficiencyRows.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No comparison data available.</p>
+                  <p className="text-sm text-muted-foreground">{t('dashboard.efficiency.noData', 'No comparison data available.')}</p>
                 ) : (
                   efficiencyRows.map((row, index) => {
                     const tone = getEfficiencyTone(row.ctrDelta, row.cpcDelta);
@@ -872,17 +899,17 @@ export default function DashboardPage() {
                           <div className="h-1.5 rounded-full bg-primary" style={{ width: `${scorePercent}%` }} />
                         </div>
                         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                          <span>CTR {row.ctr.toFixed(2)}%</span>
+                          <span>{MARKETING_GLOSSARY.ctr.term[language]} {row.ctr.toFixed(2)}%</span>
                           <span>
                             {row.ctrDelta >= 0 ? '+' : ''}
-                            {row.ctrDelta.toFixed(2)} vs avg
+                            {row.ctrDelta.toFixed(2)} {t('dashboard.vsAvg', 'vs avg')}
                           </span>
                         </div>
                         <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-                          <span>CPC {formatCurrency(row.cpc)}</span>
+                          <span>{MARKETING_GLOSSARY.cpc.term[language]} {formatCurrency(row.cpc)}</span>
                           <span>
                             {row.cpcDelta >= 0 ? '-' : '+'}
-                            {formatCurrency(Math.abs(row.cpcDelta))} vs avg
+                            {formatCurrency(Math.abs(row.cpcDelta))} {t('dashboard.vsAvg', 'vs avg')}
                           </span>
                         </div>
                       </div>
@@ -897,9 +924,9 @@ export default function DashboardPage() {
         {/* Campaigns Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Campaigns</CardTitle>
+            <CardTitle>{t('dashboard.campaigns.title', 'Campaigns')}</CardTitle>
             <CardDescription>
-              {filteredCampaigns.length} campaign{filteredCampaigns.length !== 1 ? 's' : ''} found
+              {filteredCampaigns.length} {t('dashboard.campaigns.found', 'campaigns found')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -907,31 +934,31 @@ export default function DashboardPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Campaign Name</TableHead>
-                    <TableHead>Platform</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{t('dashboard.table.campaignName', 'Campaign Name')}</TableHead>
+                    <TableHead>{t('dashboard.table.platform', 'Platform')}</TableHead>
+                    <TableHead>{t('dashboard.table.status', 'Status')}</TableHead>
                     <TableHead className="text-right">
                       <MarketingTerm
-                        term="Spend"
-                        definition="Amount spent by this campaign over the imported reporting window."
+                        term={MARKETING_GLOSSARY.spend.term[language]}
+                        definition={MARKETING_GLOSSARY.spend.definition[language]}
                       />
                     </TableHead>
                     <TableHead className="text-right">
                       <MarketingTerm
-                        term="Impressions"
-                        definition="How many times this campaign's ads were served."
+                        term={MARKETING_GLOSSARY.impressions.term[language]}
+                        definition={MARKETING_GLOSSARY.impressions.definition[language]}
                       />
                     </TableHead>
                     <TableHead className="text-right">
                       <MarketingTerm
-                        term="Clicks"
-                        definition="Total clicks generated by this campaign."
+                        term={MARKETING_GLOSSARY.clicks.term[language]}
+                        definition={MARKETING_GLOSSARY.clicks.definition[language]}
                       />
                     </TableHead>
                     <TableHead className="text-right">
                       <MarketingTerm
-                        term="CPC"
-                        definition="Cost per click for this campaign."
+                        term={MARKETING_GLOSSARY.cpc.term[language]}
+                        definition={MARKETING_GLOSSARY.cpc.definition[language]}
                       />
                     </TableHead>
                   </TableRow>
@@ -942,8 +969,8 @@ export default function DashboardPage() {
                       <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                         <div className="flex flex-col items-center gap-2">
                           <AlertCircle className="h-8 w-8 text-muted-foreground" />
-                          <p>No campaigns found</p>
-                          <p className="text-sm">Upload a CSV file to get started</p>
+                          <p>{t('dashboard.campaigns.notFound', 'No campaigns found')}</p>
+                          <p className="text-sm">{t('dashboard.campaigns.uploadPrompt', 'Upload a CSV file to get started')}</p>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -959,7 +986,7 @@ export default function DashboardPage() {
                           {campaign.platform ? (
                             <Badge variant="outline">{campaign.platform}</Badge>
                           ) : (
-                            <span className="text-muted-foreground">N/A</span>
+                            <span className="text-muted-foreground">{t('common.na', 'N/A')}</span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -974,7 +1001,7 @@ export default function DashboardPage() {
                               {campaign.status}
                             </Badge>
                           ) : (
-                            <span className="text-muted-foreground">N/A</span>
+                            <span className="text-muted-foreground">{t('common.na', 'N/A')}</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
@@ -1003,7 +1030,7 @@ export default function DashboardPage() {
       {/* Footer */}
       <footer className="mt-auto bg-background border-t">
         <div className="container mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
-          PPIOF Ads Report © {new Date().getFullYear()}
+          {t('dashboard.footer', 'PPIOF Ads Report ©')} {new Date().getFullYear()}
         </div>
       </footer>
 
@@ -1015,10 +1042,10 @@ export default function DashboardPage() {
                 <div>
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Bot className="h-4 w-4" />
-                    Ask the Dashboard
+                    {t('dashboard.chat.title', 'Ask the Dashboard')}
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Quick answers on campaigns, spend, CTR, CPC, and totals.
+                    {t('dashboard.chat.desc', 'Quick answers on campaigns, spend, CTR, CPC, and totals.')}
                   </CardDescription>
                 </div>
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setChatOpen(false)}>
@@ -1043,14 +1070,14 @@ export default function DashboardPage() {
                 {chatLoading && (
                   <div className="bg-background border mr-8 rounded-md px-3 py-2 text-sm flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Thinking...
+                    {t('dashboard.chat.thinking', 'Thinking...')}
                   </div>
                 )}
               </div>
 
               <div className="mt-3 flex gap-2">
                 <Input
-                  placeholder='Ask, e.g. "Which campaign has the best CTR?"'
+                  placeholder={t('dashboard.chat.placeholder', 'Ask, e.g. "Which campaign has the best CTR?"')}
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -1063,7 +1090,7 @@ export default function DashboardPage() {
                 />
                 <Button onClick={sendChatMessage} disabled={chatLoading || !chatInput.trim()}>
                   <Send className="h-4 w-4 mr-2" />
-                  Send
+                  {t('action.send', 'Send')}
                 </Button>
               </div>
             </CardContent>
@@ -1074,7 +1101,7 @@ export default function DashboardPage() {
           size="icon"
           className="h-12 w-12 rounded-full shadow-lg"
           onClick={() => setChatOpen((prev) => !prev)}
-          aria-label={chatOpen ? 'Close chat' : 'Open chat'}
+          aria-label={chatOpen ? t('dashboard.chat.close', 'Close chat') : t('dashboard.chat.open', 'Open chat')}
         >
           <Bot className="h-5 w-5" />
         </Button>
