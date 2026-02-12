@@ -35,6 +35,26 @@ type CampaignWithDerived = CampaignMetric & {
   safeCpm: number;
 };
 
+type AdMetric = {
+  id: string;
+  name: string;
+  campaignName: string;
+  adSetName: string | null;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  results: number;
+  cpc: number | null;
+  cpm: number | null;
+};
+
+type AdWithDerived = AdMetric & {
+  ctr: number;
+  safeCpc: number;
+  safeCpm: number;
+  efficiencyScore: number;
+};
+
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -143,6 +163,31 @@ const formatMetric = (metric: ReturnType<typeof detectMetric>, value: number) =>
       return formatNumber(value);
     default:
       return value.toFixed(2);
+  }
+};
+
+const adMetricValue = (
+  ad: AdWithDerived,
+  metric: ReturnType<typeof detectMetric> | 'efficiency'
+) => {
+  switch (metric) {
+    case 'ctr':
+      return ad.ctr;
+    case 'cpc':
+      return ad.safeCpc;
+    case 'cpm':
+      return ad.safeCpm;
+    case 'impressions':
+      return ad.impressions;
+    case 'clicks':
+      return ad.clicks;
+    case 'results':
+      return ad.results;
+    case 'efficiency':
+      return ad.efficiencyScore;
+    case 'spend':
+    default:
+      return ad.spend;
   }
 };
 
@@ -317,13 +362,28 @@ const resolveCampaignReferences = (
   return [] as CampaignWithDerived[];
 };
 
-const buildRuleBasedAnswer = (question: string, campaigns: CampaignMetric[], history: ChatMessage[]) => {
+const buildRuleBasedAnswer = (
+  question: string,
+  campaigns: CampaignMetric[],
+  history: ChatMessage[],
+  ads: AdMetric[]
+) => {
   const q = question.toLowerCase();
   const derivedCampaigns: CampaignWithDerived[] = campaigns.map((campaign) => ({
     ...campaign,
     ctr: campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0,
     safeCpc: campaign.clicks > 0 ? campaign.spend / campaign.clicks : campaign.cpc || 0,
     safeCpm: campaign.impressions > 0 ? (campaign.spend / campaign.impressions) * 1000 : campaign.cpm || 0,
+  }));
+  const derivedAds: AdWithDerived[] = ads.map((ad) => ({
+    ...ad,
+    ctr: ad.impressions > 0 ? (ad.clicks / ad.impressions) * 100 : 0,
+    safeCpc: ad.clicks > 0 ? ad.spend / ad.clicks : ad.cpc || 0,
+    safeCpm: ad.impressions > 0 ? (ad.spend / ad.impressions) * 1000 : ad.cpm || 0,
+    efficiencyScore:
+      ad.impressions > 0 && ad.clicks > 0
+        ? ((ad.clicks / ad.impressions) * 100) / Math.max(ad.cpc || 0, 0.01)
+        : 0,
   }));
 
   const totalSpend = campaigns.reduce((sum, campaign) => sum + campaign.spend, 0);
@@ -333,6 +393,66 @@ const buildRuleBasedAnswer = (question: string, campaigns: CampaignMetric[], his
 
   if ((q.includes('how many') || q.includes('number of')) && q.includes('campaign')) {
     return `There are ${campaigns.length} campaigns in the current dataset.`;
+  }
+
+  const asksForAds = /\b(ad|ads|creative|creatives)\b/.test(q);
+  if ((q.includes('how many') || q.includes('number of')) && asksForAds) {
+    return `There are ${derivedAds.length} ads in the current dataset.`;
+  }
+
+  const wantsTop = q.includes('top') || q.includes('best') || q.includes('highest') || q.includes('most');
+  const wantsWorst = q.includes('worst') || q.includes('lowest') || q.includes('least');
+
+  if (asksForAds && (wantsTop || wantsWorst || q.includes('perform') || q.includes('winner'))) {
+    if (derivedAds.length === 0) {
+      return 'I do not have ad-level rows yet. Upload data with ads first, then ask again.';
+    }
+
+    const topN = findTopN(q);
+    const metric = detectMetric(q);
+    const selectedMetric: ReturnType<typeof detectMetric> | 'efficiency' =
+      metric ||
+      (q.includes('perform') || q.includes('best') || q.includes('winner') ? 'efficiency' : 'ctr');
+    const metricLabel =
+      selectedMetric === 'efficiency' ? 'EFFICIENCY SCORE' : selectedMetric.toUpperCase();
+
+    const sortOrder =
+      selectedMetric === 'efficiency'
+        ? wantsWorst ? 'asc' : 'desc'
+        : detectOrder(q, selectedMetric);
+    const sourceAds =
+      selectedMetric === 'efficiency'
+        ? derivedAds.filter((ad) => ad.impressions >= 100 && ad.clicks > 0)
+        : derivedAds.filter((ad) => ad.impressions > 0 || ad.clicks > 0 || ad.spend > 0);
+    const sorted = [...sourceAds].sort((a, b) => {
+      const diff = adMetricValue(a, selectedMetric) - adMetricValue(b, selectedMetric);
+      return sortOrder === 'asc' ? diff : -diff;
+    });
+    const selected = sorted.slice(0, topN);
+
+    if (selected.length === 0) {
+      return 'Not enough ad-level data to rank performance yet.';
+    }
+
+    if (topN === 1) {
+      const best = selected[0];
+      return [
+        `Best ad by ${metricLabel}: "${best.name}"`,
+        `- Campaign: ${best.campaignName}${best.adSetName ? ` | Ad Set: ${best.adSetName}` : ''}`,
+        `- Spend ${formatCurrency(best.spend)} | Impressions ${formatNumber(best.impressions)} | Clicks ${formatNumber(best.clicks)}`,
+        `- CTR ${best.ctr.toFixed(2)}% | CPC ${formatCurrency(best.safeCpc)} | CPM ${formatCurrency(best.safeCpm)}`,
+      ].join('\n');
+    }
+
+    const label = topN === 1 ? 'Ad' : `Top ${topN} ads`;
+    const lines = selected.map((ad, index) => {
+      const value =
+        selectedMetric === 'efficiency'
+          ? ad.efficiencyScore.toFixed(2)
+          : formatMetric(selectedMetric, adMetricValue(ad, selectedMetric));
+      return `${index + 1}. ${ad.name} - ${value} (${ad.campaignName})`;
+    });
+    return `${label} by ${metricLabel}:\n- ${lines.join('\n- ')}`;
   }
 
   const definitionMetric = detectMetric(q);
@@ -431,8 +551,6 @@ const buildRuleBasedAnswer = (question: string, campaigns: CampaignMetric[], his
     ].join('\n');
   }
 
-  const wantsTop = q.includes('top') || q.includes('best') || q.includes('highest') || q.includes('most');
-  const wantsWorst = q.includes('worst') || q.includes('lowest') || q.includes('least');
   const metric = detectMetric(q);
 
   if ((q.includes('campaign') && (wantsTop || wantsWorst)) || ((wantsTop || wantsWorst) && metric)) {
@@ -486,7 +604,7 @@ const buildRuleBasedAnswer = (question: string, campaigns: CampaignMetric[], his
   return 'I can answer detailed questions now. Try: "show top 5 by CTR", "compare those two", "what about the second one?", "recommend optimizations", or "tell me about Cambodia Average".';
 };
 
-const buildPromptContext = (campaigns: CampaignMetric[]) => {
+const buildPromptContext = (campaigns: CampaignMetric[], ads: AdMetric[]) => {
   const totalSpend = campaigns.reduce((sum, campaign) => sum + campaign.spend, 0);
   const totalImpressions = campaigns.reduce((sum, campaign) => sum + campaign.impressions, 0);
   const totalClicks = campaigns.reduce((sum, campaign) => sum + campaign.clicks, 0);
@@ -507,6 +625,22 @@ const buildPromptContext = (campaigns: CampaignMetric[]) => {
       cpm: Number((campaign.cpm || 0).toFixed(2)),
     }));
 
+  const compactAds = [...ads]
+    .sort((a, b) => b.spend - a.spend)
+    .slice(0, 120)
+    .map((ad) => ({
+      name: ad.name,
+      campaign: ad.campaignName,
+      adSet: ad.adSetName,
+      spend: Number(ad.spend.toFixed(2)),
+      impressions: ad.impressions,
+      clicks: ad.clicks,
+      results: ad.results,
+      ctr: ad.impressions > 0 ? Number(((ad.clicks / ad.impressions) * 100).toFixed(2)) : 0,
+      cpc: Number((ad.cpc || 0).toFixed(2)),
+      cpm: Number((ad.cpm || 0).toFixed(2)),
+    }));
+
   return {
     totals: {
       campaignCount: campaigns.length,
@@ -519,6 +653,7 @@ const buildPromptContext = (campaigns: CampaignMetric[]) => {
       avgCpm: Number(averageCpm(campaigns).toFixed(2)),
     },
     campaigns: compactCampaigns,
+    ads: compactAds,
   };
 };
 
@@ -571,7 +706,12 @@ const getAiConfig = () => {
   return null;
 };
 
-const getAiAnswer = async (question: string, campaigns: CampaignMetric[], history: ChatMessage[]) => {
+const getAiAnswer = async (
+  question: string,
+  campaigns: CampaignMetric[],
+  history: ChatMessage[],
+  ads: AdMetric[]
+) => {
   const config = getAiConfig();
   if (!config) return null;
 
@@ -579,7 +719,7 @@ const getAiAnswer = async (question: string, campaigns: CampaignMetric[], histor
     process.env.OPENAI_CHAT_MODEL ||
     process.env.AI_CHAT_MODEL ||
     (config.kind === 'gateway' ? 'openai/gpt-4.1-mini' : 'gpt-4.1-mini');
-  const context = buildPromptContext(campaigns);
+  const context = buildPromptContext(campaigns, ads);
   const recentHistory = history.slice(-8).map((item) => `${item.role}: ${item.content}`).join('\n');
 
   const systemPrompt = [
@@ -664,6 +804,33 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    const adsRaw = await db.ad.findMany({
+      select: {
+        id: true,
+        name: true,
+        spend: true,
+        impressions: true,
+        clicks: true,
+        results: true,
+        cpc: true,
+        cpm: true,
+        campaign: { select: { name: true } },
+        adSet: { select: { name: true } },
+      },
+    });
+    const ads: AdMetric[] = adsRaw.map((ad) => ({
+      id: ad.id,
+      name: ad.name,
+      campaignName: ad.campaign.name,
+      adSetName: ad.adSet?.name || null,
+      spend: ad.spend,
+      impressions: ad.impressions,
+      clicks: ad.clicks,
+      results: ad.results,
+      cpc: ad.cpc,
+      cpm: ad.cpm,
+    }));
+
     if (campaigns.length === 0) {
       return NextResponse.json({
         success: true,
@@ -673,7 +840,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const aiAnswer = await getAiAnswer(question, campaigns, history);
+      const aiAnswer = await getAiAnswer(question, campaigns, history, ads);
       if (aiAnswer) {
         return NextResponse.json({
           success: true,
@@ -687,7 +854,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      answer: buildRuleBasedAnswer(question, campaigns, history),
+      answer: buildRuleBasedAnswer(question, campaigns, history, ads),
       mode: 'basic',
     });
   } catch (error) {
