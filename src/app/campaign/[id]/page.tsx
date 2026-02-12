@@ -490,12 +490,6 @@ export default function CampaignDetailPage() {
         <Card className="mb-6 premium-card fade-up">
           <CardHeader className="pb-3">
             <CardTitle className="premium-section-title">{t('dashboard.glossary.title', 'Marketing Glossary')}</CardTitle>
-            <CardDescription>
-              {t(
-                'campaign.glossary.desc',
-                'Hover any term to get a quick definition while reviewing this campaign.'
-              )}
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <MarketingGlossary
@@ -604,7 +598,7 @@ export default function CampaignDetailPage() {
               <CardHeader>
                 <CardTitle className="premium-section-title">{t('campaign.ads.title', 'Top Performing Ads')}</CardTitle>
                 <CardDescription>
-                  {t('campaign.ads.desc', 'Top 10 ads by click-through rate')}
+                  Top {topAds.length} · {MARKETING_GLOSSARY.ctr.term[language]} · {t('campaign.ads.qualityFilter', 'min 100 impressions')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -718,7 +712,7 @@ export default function CampaignDetailPage() {
               <CardHeader>
                 <CardTitle className="premium-section-title">{t('campaign.creatives.title', 'Ad Creatives')}</CardTitle>
                 <CardDescription>
-                  {t('campaign.creatives.desc', 'Visual creative gallery plus editable metadata per ad')}
+                  {allAds.length} ads · {adsWithCreative.length} with creative previews
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -971,7 +965,7 @@ export default function CampaignDetailPage() {
               <CardHeader>
                 <CardTitle className="premium-section-title">{t('campaign.recommendations.title', 'Campaign Recommendations')}</CardTitle>
                 <CardDescription>
-                  {t('campaign.recommendations.desc', 'Actionable insights based on campaign performance')}
+                  {recommendations.length} recommendations
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1008,9 +1002,7 @@ export default function CampaignDetailPage() {
             <Card className="premium-card">
               <CardHeader>
                 <CardTitle className="premium-section-title">{t('campaign.notes.title', 'Campaign Notes')}</CardTitle>
-                <CardDescription>
-                  {t('campaign.notes.desc', 'Add your observations and annotations')}
-                </CardDescription>
+                <CardDescription>{campaign.notes.length} saved notes</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">

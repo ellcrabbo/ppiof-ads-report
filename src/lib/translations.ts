@@ -120,6 +120,7 @@ export const FR_TRANSLATIONS: Record<string, string> = {
   'campaign.adsets.count': 'ensembles de publicités',
   'campaign.ads.title': 'Annonces les plus performantes',
   'campaign.ads.desc': 'Top 10 des annonces par taux de clic',
+  'campaign.ads.qualityFilter': 'minimum 100 impressions',
   'campaign.ads.noData': 'Aucune annonce avec des données suffisantes',
   'campaign.table.adName': 'Nom de l’annonce',
   'campaign.table.creative': 'Créatif',

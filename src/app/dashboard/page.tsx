@@ -383,6 +383,12 @@ export default function DashboardPage() {
 
   const maxEfficiencyScore = Math.max(...efficiencyRows.map((row) => row.efficiencyScore), 1);
   const totalFilteredSpend = filteredCampaigns.reduce((sum, campaign) => sum + campaign.spend, 0);
+  const activeCampaignCount = filteredCampaigns.filter(
+    (campaign) => (campaign.status || '').toLowerCase() === 'active'
+  ).length;
+  const creativeCoverageCount = new Set(creativeAds.map((ad) => ad.campaignId)).size;
+  const creativeCoveragePct =
+    filteredCampaigns.length > 0 ? (creativeCoverageCount / filteredCampaigns.length) * 100 : 0;
   const topSpendCampaign = [...filteredCampaigns].sort((a, b) => b.spend - a.spend)[0];
   const bestCtrCampaign = [...filteredCampaigns]
     .filter((campaign) => campaign.impressions > 0)
@@ -633,10 +639,7 @@ export default function DashboardPage() {
               </Badge>
             </div>
             <CardDescription>
-              {t(
-                'dashboard.creativeHighlights.desc',
-                'Visual strip of top creatives by spend so ads are immediately recognizable.'
-              )}
+              {creativeHighlights.length} {t('dashboard.creatives', 'Creatives')} · {creativeCoveragePct.toFixed(0)}% {t('dashboard.coveredCampaigns', 'Covered Campaigns')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -742,10 +745,7 @@ export default function DashboardPage() {
                 </span>
               </CardTitle>
               <CardDescription>
-                {t(
-                  'dashboard.visualInsights.spendVsCtrDesc',
-                  'Spend bars with CTR trend line so you can spot expensive but weak campaigns fast.'
-                )}
+                {performanceMixData.length} {t('dashboard.campaigns.title', 'Campaigns')} · {formatCurrency(totalFilteredSpend)} {t('dashboard.totalSpend', 'Total Spend')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -857,25 +857,7 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle className="premium-section-title">{t('dashboard.efficiency.title', 'Efficiency Snapshot')}</CardTitle>
               <CardDescription>
-                Ranked by{' '}
-                <MarketingTerm
-                  term={MARKETING_GLOSSARY.opportunityScore.term[language]}
-                  definition={MARKETING_GLOSSARY.opportunityScore.definition[language]}
-                  className="text-xs"
-                />{' '}
-                (higher{' '}
-                <MarketingTerm
-                  term={MARKETING_GLOSSARY.ctr.term[language]}
-                  definition={MARKETING_GLOSSARY.ctr.definition[language]}
-                  className="text-xs"
-                />{' '}
-                with lower{' '}
-                <MarketingTerm
-                  term={MARKETING_GLOSSARY.cpc.term[language]}
-                  definition={MARKETING_GLOSSARY.cpc.definition[language]}
-                  className="text-xs"
-                />
-                ).
+                {efficiencyRows.length} ranked · {MARKETING_GLOSSARY.opportunityScore.term[language]} = {MARKETING_GLOSSARY.ctr.term[language]} / {MARKETING_GLOSSARY.cpc.term[language]}
               </CardDescription>
             </CardHeader>
             <CardContent className="max-h-[420px] overflow-y-auto pr-1">
@@ -925,7 +907,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="premium-section-title">{t('dashboard.campaigns.title', 'Campaigns')}</CardTitle>
             <CardDescription>
-              {filteredCampaigns.length} {t('dashboard.campaigns.found', 'campaigns found')}
+              {filteredCampaigns.length} {t('dashboard.campaigns.found', 'campaigns found')} · {activeCampaignCount} {t('dashboard.active', 'Active')} · {formatCurrency(totalFilteredSpend)}
             </CardDescription>
           </CardHeader>
           <CardContent>
