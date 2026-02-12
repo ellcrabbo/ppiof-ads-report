@@ -353,6 +353,9 @@ export default function CampaignDetailPage() {
   const allAds = campaign.adSets.flatMap((adSet) =>
     adSet.ads.map((ad) => ({ ...ad, adSetName: adSet.name }))
   );
+  const adsWithCreative = allAds
+    .filter((ad) => getCreativeEdit(ad).creativeUrl.trim().length > 0)
+    .sort((a, b) => b.spend - a.spend);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -585,22 +588,44 @@ export default function CampaignDetailPage() {
                       ) : (
                         topAds.map((ad) => {
                           const adCtr = ad.impressions > 0 ? (ad.clicks / ad.impressions) * 100 : 0;
+                          const edit = getCreativeEdit(ad);
+                          const creativeUrl = edit.creativeUrl.trim();
 
                           return (
                             <TableRow key={ad.id}>
                               <TableCell className="font-medium">{ad.name}</TableCell>
                               <TableCell>
-                                {ad.creativeUrl ? (
-                                  <a
-                                    href={ad.creativeUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline"
-                                  >
-                                    <ImageIcon className="h-4 w-4 inline" /> View
-                                  </a>
+                                {creativeUrl ? (
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-12 w-20 rounded border overflow-hidden bg-muted relative shrink-0">
+                                      <img
+                                        src={creativeUrl}
+                                        alt={ad.name}
+                                        className="h-full w-full object-cover"
+                                      />
+                                      {edit.creativeType === 'VIDEO' && (
+                                        <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                          <Play className="h-4 w-4 text-white" />
+                                        </span>
+                                      )}
+                                      {edit.creativeType === 'CAROUSEL' && (
+                                        <span className="absolute bottom-1 right-1 rounded bg-background/90 px-1 text-[10px] text-foreground">
+                                          1/{edit.creativeCarouselTotal || '?'}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <a
+                                      href={creativeUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                                    >
+                                      <ExternalLink className="h-3 w-3" />
+                                      Open
+                                    </a>
+                                  </div>
                                 ) : (
-                                  <span className="text-muted-foreground">N/A</span>
+                                  <span className="text-muted-foreground">No creative</span>
                                 )}
                               </TableCell>
                               <TableCell className="text-right">
@@ -637,10 +662,79 @@ export default function CampaignDetailPage() {
               <CardHeader>
                 <CardTitle>Ad Creatives</CardTitle>
                 <CardDescription>
-                  Store thumbnails and creative metadata per ad
+                  Visual creative gallery plus editable metadata per ad
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">Creative Gallery</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {adsWithCreative.length} ad{adsWithCreative.length !== 1 ? 's' : ''} with previews
+                    </p>
+                  </div>
+                  {adsWithCreative.length === 0 ? (
+                    <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+                      No creatives saved yet. Add URLs below to build the gallery.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                      {adsWithCreative.slice(0, 18).map((ad) => {
+                        const edit = getCreativeEdit(ad);
+                        const creativeUrl = edit.creativeUrl.trim();
+                        return (
+                          <div key={`gallery-${ad.id}`} className="rounded-lg border bg-card overflow-hidden">
+                            <div className="relative aspect-video bg-muted">
+                              <img
+                                src={creativeUrl}
+                                alt={ad.name}
+                                className="h-full w-full object-cover"
+                              />
+                              {edit.creativeType === 'VIDEO' && (
+                                <span className="absolute inset-0 flex items-center justify-center bg-black/35">
+                                  <Play className="h-6 w-6 text-white" />
+                                </span>
+                              )}
+                              {edit.creativeType === 'CAROUSEL' && (
+                                <span className="absolute bottom-2 right-2 rounded bg-background/90 px-2 py-0.5 text-xs font-medium">
+                                  Carousel 1/{edit.creativeCarouselTotal || '?'}
+                                </span>
+                              )}
+                              <span className="absolute top-2 left-2 rounded bg-black/65 px-2 py-0.5 text-xs text-white">
+                                {edit.creativeType || 'UNSET'}
+                              </span>
+                            </div>
+                            <div className="p-3 space-y-1.5">
+                              <p className="text-sm font-semibold leading-tight max-h-10 overflow-hidden">{ad.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                Ad Set: {ad.adSetName}
+                              </p>
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <span>Spend {formatCurrency(ad.spend)}</span>
+                                <span>Clicks {formatNumber(ad.clicks)}</span>
+                              </div>
+                              <a
+                                href={creativeUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                Open Original
+                              </a>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {adsWithCreative.length > 18 && (
+                    <p className="text-xs text-muted-foreground">
+                      Showing top 18 creatives by spend. Full list remains editable below.
+                    </p>
+                  )}
+                </div>
+
                 <div className="rounded-md border max-h-[600px] overflow-y-auto">
                   <Table>
                     <TableHeader>
