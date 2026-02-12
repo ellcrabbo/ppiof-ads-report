@@ -323,6 +323,11 @@ export default function DashboardPage() {
     const question = chatInput.trim();
     if (!question || chatLoading) return;
 
+    const history = chatMessages.slice(-10).map((message) => ({
+      role: message.role,
+      content: message.content,
+    }));
+
     setChatMessages((prev) => [...prev, { role: 'user', content: question }]);
     setChatInput('');
     setChatLoading(true);
@@ -331,7 +336,7 @@ export default function DashboardPage() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question, history }),
       });
 
       const data = await res.json();
@@ -518,7 +523,7 @@ export default function DashboardPage() {
 
         {/* Visual Insights */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6 items-start">
-          <Card className="xl:col-span-2 self-start">
+          <Card className="xl:col-span-2 self-start h-fit">
             <CardHeader>
               <CardTitle>Spend vs CTR</CardTitle>
               <CardDescription>
@@ -609,11 +614,11 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="self-start h-fit">
             <CardHeader>
               <CardTitle>Efficiency Snapshot</CardTitle>
               <CardDescription>
-                Ranked by CTR relative to CPC. No red flags, just quick prioritization.
+                Ranked by opportunity score (higher CTR with lower CPC). Use this to decide what to scale next.
               </CardDescription>
             </CardHeader>
             <CardContent>
