@@ -198,6 +198,8 @@ const definitions = {
   impressions: 'Impressions are how many times your ads were shown.',
   clicks: 'Clicks are how many times users clicked your ad.',
   results: 'Results are the outcome metric captured from your import (for example conversions or landing actions).',
+  efficiency:
+    'Efficiency score is a custom ranking in this dashboard: Efficiency Score = CTR / max(CPC, 0.01), where CTR is in percentage points. Higher is better.',
 };
 
 const findNamedCampaigns = (question: string, campaigns: CampaignWithDerived[]) => {
@@ -238,6 +240,44 @@ const matchCampaignByName = (name: string, campaigns: CampaignWithDerived[]) => 
       return campaignName.includes(normalized) || normalized.includes(campaignName);
     }) || null
   );
+};
+
+const matchAdByName = (name: string, ads: AdWithDerived[]) => {
+  const normalized = normalizeText(name);
+  if (!normalized) return null;
+
+  const exact = ads.find((ad) => normalizeText(ad.name) === normalized);
+  if (exact) return exact;
+
+  return (
+    ads.find((ad) => {
+      const adName = normalizeText(ad.name);
+      return adName.includes(normalized) || normalized.includes(adName);
+    }) || null
+  );
+};
+
+const findMostRecentMentionedAd = (history: ChatMessage[], ads: AdWithDerived[]) => {
+  for (let i = history.length - 1; i >= 0; i -= 1) {
+    const message = history[i];
+    if (message.role !== 'assistant') continue;
+
+    const quotedNames = [...message.content.matchAll(/"([^"]{2,180})"/g)].map((match) => match[1]);
+    for (const name of quotedNames) {
+      const ad = matchAdByName(name, ads);
+      if (ad) return ad;
+    }
+
+    const rankedNames = [...message.content.matchAll(/(?:^|\n)\s*\d+\.\s(.+?)\s[-–—]\s/g)].map((match) =>
+      match[1].trim()
+    );
+    for (const name of rankedNames) {
+      const ad = matchAdByName(name, ads);
+      if (ad) return ad;
+    }
+  }
+
+  return null;
 };
 
 const uniqueCampaigns = (campaigns: Array<CampaignWithDerived | null | undefined>) => {
@@ -400,8 +440,30 @@ const buildRuleBasedAnswer = (
     return `There are ${derivedAds.length} ads in the current dataset.`;
   }
 
+  const isDefinitionQuery =
+    /\b(what(?:'s| is)|define|meaning|means|explain)\b/.test(q) ||
+    (q.includes('how') && (q.includes('calculate') || q.includes('computed')));
+  const asksEfficiency = q.includes('efficiency score') || q === 'efficiency' || q === 'efficiency score';
   const wantsTop = q.includes('top') || q.includes('best') || q.includes('highest') || q.includes('most');
   const wantsWorst = q.includes('worst') || q.includes('lowest') || q.includes('least');
+
+  if (asksEfficiency && (isDefinitionQuery || (!wantsTop && !wantsWorst && !q.includes('perform') && !q.includes('winner')))) {
+    const recentAd = findMostRecentMentionedAd(history, derivedAds);
+    const bestOverall =
+      recentAd ||
+      [...derivedAds]
+        .filter((ad) => ad.impressions >= 100 && ad.clicks > 0)
+        .sort((a, b) => b.efficiencyScore - a.efficiencyScore)[0];
+
+    if (bestOverall) {
+      return [
+        definitions.efficiency,
+        `For "${bestOverall.name}", score = ${bestOverall.efficiencyScore.toFixed(2)} (CTR ${bestOverall.ctr.toFixed(2)} / CPC ${formatCurrency(bestOverall.safeCpc)}).`,
+      ].join('\n');
+    }
+
+    return definitions.efficiency;
+  }
 
   if (asksForAds && (wantsTop || wantsWorst || q.includes('perform') || q.includes('winner'))) {
     if (derivedAds.length === 0) {
@@ -441,14 +503,19 @@ const buildRuleBasedAnswer = (
         `- Campaign: ${best.campaignName}${best.adSetName ? ` | Ad Set: ${best.adSetName}` : ''}`,
         `- Spend ${formatCurrency(best.spend)} | Impressions ${formatNumber(best.impressions)} | Clicks ${formatNumber(best.clicks)}`,
         `- CTR ${best.ctr.toFixed(2)}% | CPC ${formatCurrency(best.safeCpc)} | CPM ${formatCurrency(best.safeCpm)}`,
-      ].join('\n');
+        selectedMetric === 'efficiency'
+          ? `- Efficiency score ${best.efficiencyScore.toFixed(2)} (CTR / max(CPC, 0.01)).`
+          : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
     }
 
     const label = topN === 1 ? 'Ad' : `Top ${topN} ads`;
     const lines = selected.map((ad, index) => {
       const value =
         selectedMetric === 'efficiency'
-          ? ad.efficiencyScore.toFixed(2)
+          ? `${ad.efficiencyScore.toFixed(2)} score`
           : formatMetric(selectedMetric, adMetricValue(ad, selectedMetric));
       return `${index + 1}. ${ad.name} - ${value} (${ad.campaignName})`;
     });
