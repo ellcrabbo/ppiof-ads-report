@@ -12,6 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { MarketingTerm } from '@/components/marketing-term';
+import { MarketingGlossary } from '@/components/marketing-glossary';
+import { MARKETING_GLOSSARY } from '@/lib/marketing-glossary';
 import {
   ComposedChart,
   Bar,
@@ -603,6 +605,33 @@ export default function DashboardPage() {
           </Button>
         </div>
 
+        <Card className="mb-6">
+          <CardHeader className="pb-3">
+            <CardTitle>Marketing Glossary</CardTitle>
+            <CardDescription>
+              Hover any term to see a plain-English definition.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <MarketingGlossary
+              terms={[
+                'campaign',
+                'adSet',
+                'creative',
+                'spend',
+                'impressions',
+                'reach',
+                'clicks',
+                'results',
+                'ctr',
+                'cpc',
+                'cpm',
+                'opportunityScore',
+              ]}
+            />
+          </CardContent>
+        </Card>
+
         {/* Creative Highlights */}
         <Card className="mb-6">
           <CardHeader>
@@ -697,7 +726,19 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6 items-start">
           <Card className="xl:col-span-2 self-start h-fit">
             <CardHeader>
-              <CardTitle>Spend vs CTR</CardTitle>
+              <CardTitle>
+                <span className="flex flex-wrap items-center gap-2">
+                  <MarketingTerm
+                    term={MARKETING_GLOSSARY.spend.term}
+                    definition={MARKETING_GLOSSARY.spend.definition}
+                  />
+                  <span>vs</span>
+                  <MarketingTerm
+                    term={MARKETING_GLOSSARY.ctr.term}
+                    definition={MARKETING_GLOSSARY.ctr.definition}
+                  />
+                </span>
+              </CardTitle>
               <CardDescription>
                 Spend bars with CTR trend line so you can spot expensive but weak campaigns fast.
               </CardDescription>
@@ -790,7 +831,25 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle>Efficiency Snapshot</CardTitle>
               <CardDescription>
-                Ranked by opportunity score (higher CTR with lower CPC). Use this to decide what to scale next.
+                Ranked by{' '}
+                <MarketingTerm
+                  term={MARKETING_GLOSSARY.opportunityScore.term}
+                  definition={MARKETING_GLOSSARY.opportunityScore.definition}
+                  className="text-xs"
+                />{' '}
+                (higher{' '}
+                <MarketingTerm
+                  term={MARKETING_GLOSSARY.ctr.term}
+                  definition={MARKETING_GLOSSARY.ctr.definition}
+                  className="text-xs"
+                />{' '}
+                with lower{' '}
+                <MarketingTerm
+                  term={MARKETING_GLOSSARY.cpc.term}
+                  definition={MARKETING_GLOSSARY.cpc.definition}
+                  className="text-xs"
+                />
+                ).
               </CardDescription>
             </CardHeader>
             <CardContent>

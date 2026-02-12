@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { MarketingTerm } from '@/components/marketing-term';
+import { MarketingGlossary } from '@/components/marketing-glossary';
 import {
   ArrowLeft,
   DollarSign,
@@ -459,6 +460,32 @@ export default function CampaignDetailPage() {
             </CardContent>
           </Card>
         </div>
+
+        <Card className="mb-6">
+          <CardHeader className="pb-3">
+            <CardTitle>Marketing Glossary</CardTitle>
+            <CardDescription>
+              Hover any term to get a quick definition while reviewing this campaign.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <MarketingGlossary
+              terms={[
+                'campaign',
+                'adSet',
+                'creative',
+                'spend',
+                'impressions',
+                'reach',
+                'clicks',
+                'results',
+                'ctr',
+                'cpc',
+                'cpm',
+              ]}
+            />
+          </CardContent>
+        </Card>
 
         <Tabs defaultValue="creatives" className="space-y-4">
           <TabsList>
