@@ -10,6 +10,39 @@ const ExportSchema = z.object({
   endDate: z.string().optional(),
 });
 
+const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
+  try {
+    const parsed = new URL(url);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'ADC-Ads-Reporting-PDF/1.0',
+      },
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) return null;
+
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.startsWith('image/')) return null;
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Keep PDF size under control when creatives are large.
+    if (buffer.byteLength > 2_500_000) return null;
+
+    return `data:${contentType};base64,${buffer.toString('base64')}`;
+  } catch {
+    return null;
+  }
+};
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -96,6 +129,29 @@ export async function POST(request: NextRequest) {
       totalImpressions,
       totalClicks,
       totalResults,
+      creatives: await Promise.all(
+        campaigns
+          .flatMap((campaign) =>
+            campaign.AdSet.flatMap((adSet) =>
+              adSet.Ad.map((ad) => ({
+                adName: ad.name,
+                campaignName: campaign.name,
+                creativeUrl: ad.creativeUrl,
+                creativeType: ad.creativeType,
+                spend: ad.spend,
+              }))
+            )
+          )
+          .filter((creative) => Boolean(creative.creativeUrl))
+          .sort((a, b) => b.spend - a.spend)
+          .slice(0, 8)
+          .map(async (creative) => ({
+            ...creative,
+            imageDataUrl: creative.creativeUrl
+              ? await fetchImageAsDataUrl(creative.creativeUrl)
+              : null,
+          }))
+      ),
     };
 
     const pdfBuffer = await renderToBuffer(generateCampaignReportPDF(reportData));

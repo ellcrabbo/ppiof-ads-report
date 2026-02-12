@@ -1,5 +1,5 @@
 import { Campaign, Ad, AdSet } from '@prisma/client';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
   page: {
@@ -179,6 +179,63 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     backgroundColor: '#FFFFFF',
   },
+  creativeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginLeft: -4,
+    marginRight: -4,
+    marginBottom: 10,
+  },
+  creativeCard: {
+    width: '50%',
+    paddingLeft: 4,
+    paddingRight: 4,
+    marginBottom: 8,
+  },
+  creativeCardInner: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 6,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+  },
+  creativeImage: {
+    width: '100%',
+    height: 96,
+    objectFit: 'cover',
+    backgroundColor: '#E5E7EB',
+  },
+  creativeImageFallback: {
+    width: '100%',
+    height: 96,
+    backgroundColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  creativeImageFallbackText: {
+    fontSize: 8,
+    color: '#6B7280',
+  },
+  creativeMeta: {
+    paddingTop: 6,
+    paddingRight: 8,
+    paddingBottom: 8,
+    paddingLeft: 8,
+  },
+  creativeName: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  creativeSub: {
+    fontSize: 8,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  creativeSpend: {
+    fontSize: 8,
+    color: '#374151',
+  },
   campaignTitle: {
     fontSize: 11,
     fontWeight: 'bold',
@@ -244,6 +301,14 @@ interface ReportData {
   totalImpressions: number;
   totalClicks: number;
   totalResults: number;
+  creatives?: Array<{
+    adName: string;
+    campaignName: string;
+    creativeUrl: string | null;
+    creativeType: string | null;
+    spend: number;
+    imageDataUrl: string | null;
+  }>;
 }
 
 const formatCurrency = (value: number) =>
@@ -266,6 +331,7 @@ const truncate = (value: string, max: number) => {
 export function generateCampaignReportPDF(data: ReportData) {
   const campaigns = [...data.campaigns].sort((a, b) => b.spend - a.spend);
   const topCampaigns = campaigns.slice(0, 10);
+  const topCreatives = (data.creatives || []).filter((creative) => Boolean(creative.creativeUrl)).slice(0, 8);
   const campaignCount = campaigns.length;
 
   const ctr = data.totalImpressions > 0 ? (data.totalClicks / data.totalImpressions) * 100 : 0;
@@ -404,6 +470,36 @@ export function generateCampaignReportPDF(data: ReportData) {
       </Page>
 
       <Page size="A4" style={styles.page} wrap>
+        {topCreatives.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Creative Highlights</Text>
+            <View style={styles.creativeGrid}>
+              {topCreatives.map((creative, index) => (
+                <View key={`creative-${creative.adName}-${index}`} style={styles.creativeCard} wrap={false}>
+                  <View style={styles.creativeCardInner}>
+                    {creative.imageDataUrl ? (
+                      <Image src={creative.imageDataUrl} style={styles.creativeImage} />
+                    ) : (
+                      <View style={styles.creativeImageFallback}>
+                        <Text style={styles.creativeImageFallbackText}>
+                          {creative.creativeType === 'VIDEO' ? 'Video Preview' : 'Creative Preview'}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={styles.creativeMeta}>
+                      <Text style={styles.creativeName}>{truncate(creative.adName, 40)}</Text>
+                      <Text style={styles.creativeSub}>{truncate(creative.campaignName, 42)}</Text>
+                      <Text style={styles.creativeSpend}>
+                        {creative.creativeType || 'IMAGE'} • {formatCurrency(creative.spend)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         <Text style={styles.sectionTitle}>Campaign Drilldown (Top 8 by Spend)</Text>
         {topCampaigns.slice(0, 8).map((campaign) => {
           const campaignCtr = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0;
