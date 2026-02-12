@@ -60,6 +60,15 @@ interface DashboardSummary {
   ctr: number;
 }
 
+interface CountryBreakdownMetric {
+  spend: number;
+  impressions: number;
+  reach: number;
+  clicks: number;
+  results: number;
+  ctr: number;
+}
+
 interface Campaign {
   id: string;
   name: string;
@@ -102,6 +111,7 @@ export default function DashboardPage() {
   const { language, t } = useLanguage();
   const { status } = useSession();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [countryBreakdown, setCountryBreakdown] = useState<Record<string, CountryBreakdownMetric>>({});
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -179,6 +189,7 @@ export default function DashboardPage() {
       const campaignsData = await campaignsRes.json();
 
       setSummary(summaryData.data.summary);
+      setCountryBreakdown(summaryData.data.countryBreakdown || {});
       setCampaigns(campaignsData.data);
     } catch (error) {
       console.error('Fetch error:', error);
@@ -373,6 +384,12 @@ export default function DashboardPage() {
       spend: Number(campaign.spend.toFixed(2)),
       ctr: campaign.impressions > 0 ? Number(((campaign.clicks / campaign.impressions) * 100).toFixed(2)) : 0,
     }));
+
+  const countryHeatmapData = Object.entries(countryBreakdown)
+    .map(([country, metrics]) => ({ country, ...metrics }))
+    .sort((a, b) => b.impressions - a.impressions)
+    .slice(0, 12);
+  const maxCountryImpressions = Math.max(...countryHeatmapData.map((row) => row.impressions), 1);
 
   const efficiencyRows = [...filteredCampaigns]
     .filter((campaign) => campaign.impressions > 0 && campaign.clicks > 0)
@@ -884,6 +901,49 @@ export default function DashboardPage() {
                     {lowestCpcCampaign ? formatCurrency(lowestCpcCampaign.cpc || 0) : t('dashboard.visualInsights.noData', 'No data')}
                   </p>
                 </div>
+              </div>
+
+              <div className="rounded-md border bg-muted/20 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    {t('dashboard.countryHeatmap.title', 'Country Delivery Heat Map')}
+                  </p>
+                  <span className="text-xs text-muted-foreground">
+                    {t('dashboard.countryHeatmap.basedOn', 'Based on impressions')}
+                  </span>
+                </div>
+                {countryHeatmapData.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t(
+                      'dashboard.countryHeatmap.empty',
+                      'No country-level data yet. Upload a CSV with a Country/Region column to populate this.'
+                    )}
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {countryHeatmapData.map((row) => {
+                      const intensity = row.impressions / maxCountryImpressions;
+                      const bgAlpha = 0.18 + intensity * 0.52;
+                      return (
+                        <div
+                          key={row.country}
+                          className="rounded-md border p-2 text-xs transition-colors"
+                          style={{
+                            backgroundColor: `rgba(37, 99, 235, ${bgAlpha.toFixed(3)})`,
+                            borderColor: `rgba(37, 99, 235, ${Math.min(0.8, bgAlpha + 0.2).toFixed(3)})`,
+                          }}
+                          title={`${row.country}: ${formatNumber(row.impressions)} ${MARKETING_GLOSSARY.impressions.term[language]}`}
+                        >
+                          <p className="font-medium truncate text-white">{row.country}</p>
+                          <p className="text-white/90">{formatNumber(row.impressions)}</p>
+                          <p className="text-white/85">
+                            {MARKETING_GLOSSARY.ctr.term[language]} {row.ctr.toFixed(2)}%
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="rounded-md border bg-muted/20 p-3">

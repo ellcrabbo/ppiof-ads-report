@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
     const campaigns = await db.campaign.findMany({
       where,
       select: {
+        importRunId: true,
         spend: true,
         impressions: true,
         reach: true,
@@ -54,6 +55,24 @@ export async function GET(request: NextRequest) {
         platform: true,
       },
     });
+
+    const importRunIds = [...new Set(campaigns.map((campaign) => campaign.importRunId))];
+    const countryMetrics = importRunIds.length
+      ? await db.dailyMetric.findMany({
+          where: {
+            entityType: 'country',
+            importRunId: { in: importRunIds },
+          },
+          select: {
+            entityId: true,
+            spend: true,
+            impressions: true,
+            reach: true,
+            clicks: true,
+            results: true,
+          },
+        })
+      : [];
 
     const totalSpend = campaigns.reduce((sum, c) => sum + c.spend, 0);
     const totalImpressions = campaigns.reduce((sum, c) => sum + c.impressions, 0);
@@ -92,6 +111,23 @@ export async function GET(request: NextRequest) {
       return acc;
     }, {});
 
+    const countryBreakdown = countryMetrics.reduce((acc: any, metric) => {
+      const country = metric.entityId || 'Unknown';
+      if (!acc[country]) {
+        acc[country] = { spend: 0, impressions: 0, reach: 0, clicks: 0, results: 0, ctr: 0 };
+      }
+      acc[country].spend += metric.spend;
+      acc[country].impressions += metric.impressions;
+      acc[country].reach += metric.reach;
+      acc[country].clicks += metric.clicks;
+      acc[country].results += metric.results;
+      return acc;
+    }, {});
+
+    Object.values(countryBreakdown).forEach((metric: any) => {
+      metric.ctr = metric.impressions > 0 ? (metric.clicks / metric.impressions) * 100 : 0;
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -107,6 +143,7 @@ export async function GET(request: NextRequest) {
         },
         platformBreakdown,
         objectiveBreakdown,
+        countryBreakdown,
       },
     });
   } catch (error) {

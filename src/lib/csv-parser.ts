@@ -90,6 +90,16 @@ export const META_COLUMN_MAPPING = {
     'Ad url',
     'Ad URL',
   ],
+  country: [
+    'Country',
+    'country',
+    'Country name',
+    'Country Name',
+    'Region',
+    'region',
+    'Geography',
+    'geography',
+  ],
 } as const;
 
 // Validation schema for a parsed CSV row
@@ -109,6 +119,7 @@ export const CSVRowSchema = z.object({
   status: z.string().optional(),
   platform: z.string().optional(),
   creativeUrl: z.string().optional(),
+  country: z.string().optional(),
 });
 
 export type CSVRow = z.infer<typeof CSVRowSchema>;

@@ -65,6 +65,17 @@ export async function POST(request: NextRequest) {
     const campaignsMap = new Map<string, any>();
     const adSetsMap = new Map<string, any>();
     const adsMap = new Map<string, any>();
+    const countryMetricsMap = new Map<
+      string,
+      {
+        country: string;
+        spend: number;
+        impressions: number;
+        reach: number;
+        clicks: number;
+        results: number;
+      }
+    >();
 
     for (const row of parseResult.data) {
       const campaignName = row.campaignName || 'Unknown Campaign';
@@ -82,6 +93,7 @@ export async function POST(request: NextRequest) {
       const platform = row.platform || validatedData.platform;
       const creativeUrl = row.creativeUrl;
       const creativeType = inferCreativeType(creativeUrl);
+      const country = row.country?.trim() || '';
 
       const cpm = calculateCPM(spend, impressions);
       const cpc = calculateCPC(spend, clicks);
@@ -90,6 +102,26 @@ export async function POST(request: NextRequest) {
       totalImpressions += impressions;
       totalClicks += clicks;
       totalResults += results;
+
+      if (country) {
+        const countryKey = country.toLowerCase();
+        if (!countryMetricsMap.has(countryKey)) {
+          countryMetricsMap.set(countryKey, {
+            country,
+            spend: 0,
+            impressions: 0,
+            reach: 0,
+            clicks: 0,
+            results: 0,
+          });
+        }
+        const countryMetrics = countryMetricsMap.get(countryKey)!;
+        countryMetrics.spend += spend;
+        countryMetrics.impressions += impressions;
+        countryMetrics.reach += reach;
+        countryMetrics.clicks += clicks;
+        countryMetrics.results += results;
+      }
 
       // Aggregate campaign data
       if (!campaignsMap.has(campaignName)) {
@@ -256,6 +288,25 @@ export async function POST(request: NextRequest) {
         totalResults,
       },
     });
+
+    if (countryMetricsMap.size > 0) {
+      await db.dailyMetric.createMany({
+        data: Array.from(countryMetricsMap.values()).map((countryMetrics) => ({
+          entityType: 'country',
+          entityId: countryMetrics.country,
+          importRunId: importRun.id,
+          date: importRun.createdAt,
+          spend: countryMetrics.spend,
+          impressions: countryMetrics.impressions,
+          reach: countryMetrics.reach,
+          clicks: countryMetrics.clicks,
+          results: countryMetrics.results,
+          resultType: null,
+          cpm: calculateCPM(countryMetrics.spend, countryMetrics.impressions),
+          cpc: calculateCPC(countryMetrics.spend, countryMetrics.clicks),
+        })),
+      });
+    }
 
     const diffFromPrevious = previousImportRun
       ? {
