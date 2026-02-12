@@ -1,7 +1,7 @@
 'use client';
 
 export const dynamic = "force-dynamic";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,9 @@ import {
   Bot,
   Loader2,
   X,
+  Play,
+  ExternalLink,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -66,6 +69,20 @@ interface Campaign {
   results: number;
   cpm: number | null;
   cpc: number | null;
+  AdSet?: Array<{
+    id: string;
+    name: string;
+    Ad?: Array<{
+      id: string;
+      name: string;
+      creativeUrl: string | null;
+      creativeType?: 'IMAGE' | 'VIDEO' | 'CAROUSEL' | null;
+      creativeCarouselTotal?: number | null;
+      spend: number;
+      impressions: number;
+      clicks: number;
+    }>;
+  }>;
   _count: {
     adSets: number;
   };
@@ -95,6 +112,8 @@ export default function DashboardPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
   const [hasAutoCollapsed, setHasAutoCollapsed] = useState(false);
+  const [creativeScrollPaused, setCreativeScrollPaused] = useState(false);
+  const creativeStripRef = useRef<HTMLDivElement | null>(null);
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -253,6 +272,69 @@ export default function DashboardPage() {
     }
     return true;
   });
+
+  const creativeHighlights = filteredCampaigns
+    .flatMap((campaign) =>
+      (campaign.AdSet || []).flatMap((adSet) =>
+        (adSet.Ad || []).map((ad) => ({
+          id: ad.id,
+          campaignId: campaign.id,
+          campaignName: campaign.name,
+          adSetName: adSet.name,
+          adName: ad.name,
+          creativeUrl: ad.creativeUrl,
+          creativeType: ad.creativeType || null,
+          creativeCarouselTotal: ad.creativeCarouselTotal || null,
+          spend: ad.spend,
+          impressions: ad.impressions,
+          clicks: ad.clicks,
+        }))
+      )
+    )
+    .filter((ad) => Boolean(ad.creativeUrl))
+    .sort((a, b) => b.spend - a.spend)
+    .slice(0, 16);
+
+  const autoScrollCreatives =
+    creativeHighlights.length > 1
+      ? [...creativeHighlights, ...creativeHighlights]
+      : creativeHighlights;
+
+  useEffect(() => {
+    const container = creativeStripRef.current;
+    if (!container || creativeHighlights.length < 2) return;
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    let frameId: number | null = null;
+    let lastTs = 0;
+    const pxPerSecond = 36;
+
+    const tick = (ts: number) => {
+      if (lastTs === 0) {
+        lastTs = ts;
+      }
+      const elapsed = (ts - lastTs) / 1000;
+      lastTs = ts;
+
+      if (!creativeScrollPaused) {
+        container.scrollLeft += pxPerSecond * elapsed;
+        const loopPoint = container.scrollWidth / 2;
+        if (container.scrollLeft >= loopPoint) {
+          container.scrollLeft = 0;
+        }
+      }
+
+      frameId = window.requestAnimationFrame(tick);
+    };
+
+    frameId = window.requestAnimationFrame(tick);
+
+    return () => {
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, [creativeHighlights.length, creativeScrollPaused]);
 
   const performanceMixData = [...filteredCampaigns]
     .sort((a, b) => b.spend - a.spend)
@@ -520,6 +602,96 @@ export default function DashboardPage() {
             {exporting ? 'Exporting...' : 'Export PDF'}
           </Button>
         </div>
+
+        {/* Creative Highlights */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Creative Highlights</CardTitle>
+            <CardDescription>
+              Visual strip of top creatives by spend so ads are immediately recognizable.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {creativeHighlights.length === 0 ? (
+              <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+                No creative previews yet. Upload or save creative URLs to populate this gallery.
+              </div>
+            ) : (
+              <div
+                ref={creativeStripRef}
+                className="overflow-x-auto pb-2"
+                onMouseEnter={() => setCreativeScrollPaused(true)}
+                onMouseLeave={() => setCreativeScrollPaused(false)}
+                onTouchStart={() => setCreativeScrollPaused(true)}
+                onTouchEnd={() => setCreativeScrollPaused(false)}
+              >
+                <div className="flex gap-3 min-w-max">
+                  {autoScrollCreatives.map((creative, index) => {
+                    const ctr = creative.impressions > 0 ? (creative.clicks / creative.impressions) * 100 : 0;
+                    return (
+                      <div
+                        key={`${creative.id}-${index}`}
+                        className="w-64 rounded-lg border bg-card overflow-hidden cursor-pointer hover:border-primary/40 transition-colors"
+                        onClick={() => router.push(`/campaign/${creative.campaignId}`)}
+                      >
+                        <div className="relative aspect-video bg-muted">
+                          {creative.creativeUrl ? (
+                            <img
+                              src={creative.creativeUrl}
+                              alt={creative.adName}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center">
+                              <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+
+                          {creative.creativeType === 'VIDEO' && (
+                            <span className="absolute inset-0 flex items-center justify-center bg-black/35">
+                              <Play className="h-6 w-6 text-white" />
+                            </span>
+                          )}
+
+                          {creative.creativeType === 'CAROUSEL' && (
+                            <span className="absolute bottom-2 right-2 rounded bg-background/90 px-2 py-0.5 text-xs">
+                              1/{creative.creativeCarouselTotal || '?'}
+                            </span>
+                          )}
+
+                          <span className="absolute top-2 left-2 rounded bg-black/65 px-2 py-0.5 text-xs text-white">
+                            {creative.creativeType || 'IMAGE'}
+                          </span>
+                        </div>
+
+                        <div className="p-3 space-y-1.5">
+                          <p className="text-sm font-semibold truncate">{creative.adName}</p>
+                          <p className="text-xs text-muted-foreground truncate">{creative.campaignName}</p>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{formatCurrency(creative.spend)}</span>
+                            <span>CTR {ctr.toFixed(2)}%</span>
+                          </div>
+                          {creative.creativeUrl && (
+                            <a
+                              href={creative.creativeUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(event) => event.stopPropagation()}
+                              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              Open original
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Visual Insights */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6 items-start">

@@ -460,7 +460,7 @@ export default function CampaignDetailPage() {
           </Card>
         </div>
 
-        <Tabs defaultValue="adsets" className="space-y-4">
+        <Tabs defaultValue="creatives" className="space-y-4">
           <TabsList>
             <TabsTrigger value="adsets">Ad Sets</TabsTrigger>
             <TabsTrigger value="ads">Top Ads</TabsTrigger>
