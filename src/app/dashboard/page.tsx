@@ -624,24 +624,6 @@ export default function DashboardPage() {
           </Button>
         </div>
 
-        <div className="mb-4 rounded-md border bg-muted/20 px-3 py-2">
-          <MarketingGlossary
-            terms={[
-              'campaign',
-              'adSet',
-              'creative',
-              'spend',
-              'impressions',
-              'reach',
-              'clicks',
-              'results',
-              'ctr',
-              'cpc',
-              'cpm',
-            ]}
-          />
-        </div>
-
         <Card className="mb-6">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-2">
@@ -820,7 +802,7 @@ export default function DashboardPage() {
                 )}
               </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="rounded-md border bg-muted/20 p-3">
                   <p className="text-xs text-muted-foreground">{t('dashboard.visualInsights.topSpendCampaign', 'Top Spend Campaign')}</p>
                   <p className="text-sm font-medium truncate mt-1">{topSpendCampaign?.name || t('common.na', 'N/A')}</p>
@@ -846,6 +828,27 @@ export default function DashboardPage() {
                     {lowestCpcCampaign ? formatCurrency(lowestCpcCampaign.cpc || 0) : t('dashboard.visualInsights.noData', 'No data')}
                   </p>
                 </div>
+              </div>
+
+              <div className="rounded-md border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground mb-2">
+                  {t('dashboard.glossary.title', 'Marketing Glossary')}
+                </p>
+                <MarketingGlossary
+                  terms={[
+                    'campaign',
+                    'adSet',
+                    'creative',
+                    'spend',
+                    'impressions',
+                    'reach',
+                    'clicks',
+                    'results',
+                    'ctr',
+                    'cpc',
+                    'cpm',
+                  ]}
+                />
               </div>
             </CardContent>
           </Card>
